@@ -96,7 +96,15 @@ async function load(preserve=false){
 }
 function renderPicks(){const box=$('picks');box.replaceChildren();const sel=state.data.selection;for(const c of [...new Set([sel.best_code,...sel.top3_codes].filter(Boolean))]){const s=state.data.stocks.find(x=>x.code===c);const b=document.createElement('button');b.className='pick';b.style.borderLeft=`4px solid ${color(c)}`;b.textContent=`${tags(c)} · ${s.name} ${c} · ${cap(s)}`;b.onclick=()=>selectCompany(s);box.append(b);}if(!sel.best_code){const p=document.createElement('p');p.textContent=sel.best_status;box.append(p);}if(state.data.reason){const p=document.createElement('p');p.className='muted';p.textContent=`当前指标样本 ${state.data.reason.n} 年 · 中位数 ${valueText(state.data.reason.median)} · 四分位距 ${fmt(state.data.reason.iqr,2)} ${unit()==='%'?'个百分点':unit()}`;box.append(p);}}
 function years(keep=true){let all=[...state.stocks.values()].flatMap(s=>s.values.map(v=>v[0])).concat(state.data.median.map(v=>v[0]));if(!all.length)all=[state.catalog.last_year];const lo=Math.min(...all),hi=Math.max(...all);const oldFrom=+$('from').value,oldTo=+$('to').value;for(const id of ['from','to']){$(id).replaceChildren();for(let y=lo;y<=hi;y++)option($(id),y,y);}$('from').value=keep&&oldFrom>=lo&&oldFrom<=hi?oldFrom:lo;$('to').value=keep&&oldTo>=lo&&oldTo<=hi?oldTo:hi;}
-function renderRoster(){refreshVisibility();const box=$('roster');box.replaceChildren();const list=[...state.stocks.values()].sort((a,b)=>Number(important(b.code))-Number(important(a.code))||(b.cap_yi||0)-(a.cap_yi||0));$('count').textContent=`${state.visible.size} / ${list.length} 只`;
+function compareRoster(a,b){
+ const descending=(x,y)=>Number.isFinite(x)?(Number.isFinite(y)?y-x:-1):(Number.isFinite(y)?1:0);
+ const mode=$('stockSort').value;
+ const stat=mode==='min'?'min':mode==='median'?'median':null;
+ const metricOrder=stat?descending(state.screening.get(a.code)?.[stat],state.screening.get(b.code)?.[stat]):0;
+ return metricOrder||descending(a.cap_yi,b.cap_yi)||a.code.localeCompare(b.code);
+}
+$('stockSort').onchange=()=>{if(state.data)renderRoster();};
+function renderRoster(){refreshVisibility();const box=$('roster');box.replaceChildren();const list=[...state.stocks.values()].sort(compareRoster);$('count').textContent=`${state.visible.size} / ${list.length} 只`;
  for(const s of list){const result=state.screening.get(s.code);const row=document.createElement('div');row.className='stock'+(result.pass?'':' filtered');row.dataset.code=s.code;row.style.borderLeftColor=color(s.code);
  const check=document.createElement('input');check.type='checkbox';check.checked=state.visible.has(s.code);check.disabled=!result.pass;check.setAttribute('aria-label','显示 '+s.name+' '+s.code);check.title=result.pass?'勾选显示，取消隐藏':result.reason;
  check.onchange=()=>{if(check.checked)state.excluded.delete(s.code);else state.excluded.add(s.code);refreshSelection();};
