@@ -29,7 +29,7 @@ function refreshVisibility(){
  if(!state.visible.has(state.hover))state.hover=null;
  $('tooltip').hidden=true;
  $('filterSummary').textContent=invalid?'筛选条件无效：请输入有效数字，且下限不能高于上限。':
-  `${$('from').value}—${$('to').value} 年 · 单位 ${unit()} · 达标 ${eligible} / ${state.stocks.size} 只，已勾选 ${state.visible.size} 只。仅统计有效年报，缺失不填零；行业中位数及重点名单保持原行业口径。`;
+  `${$('from').value}—${$('to').value} 年 · 单位 ${unit()} · 达标 ${eligible} / ${state.stocks.size} 只，已勾选 ${state.visible.size} 只。仅统计有效年报，缺失不填零；行业参考线及重点名单保持原行业口径。`;
 }
 function refreshSelection(){if(!state.data)return;renderRoster();draw();}
 for(const id of filterIds)$(id).oninput=refreshSelection;
@@ -89,10 +89,23 @@ async function load(preserve=false){
   const end=state.catalog.last_year;$('method').textContent=`优选按 ${end-6}—${end} 年计算：至少5个有效年报，最新年指标、归母净利润、净资产均为正，非ST、非退市，且有基准日市值。在所选行业内评分：指标中位数50%＋低四分位距25%＋最新年指标15%＋正值年份比例10%。同分依次比较中位数、样本量、市值和代码。不满足完整条件时明确标为观察候选。该优选仅代表此指标的水平与稳定性，未评估买入估值。`;
   if(metric==='debt_ratio')$('method').textContent=`低负债优选按 ${end-6}—${end} 年计算：至少5个非负有效年报，最新年资产负债率低于100%、归母净利润和净资产为正，非ST、非退市且有基准日市值。同业评分：较低资产负债率中位数50%＋低四分位距25%＋较低最新年负债率15%＋负债率低于100%的年份比例10%。零负债率有效；负值保留绘图但不参与优选。条件不足标为观察候选。图表与详情均显示原始资产负债率，不对数值取反。低负债仅反映此指标，不能单独判定公司最优，银行等金融行业需结合业务模式解读。`;
   if(data.reference_selection)$('method').textContent='本指标不按越高越好或越低越好评选公司。橙色曲线为有本指标数据样本中的ROE参考优选，沿用近7年ROE水平、稳定性、最新值和盈利状态规则；并非当前指标最优。市值前三仍按当前指标有效样本计算。';
+  if(data.method)$('method').textContent=data.method;
+  $('industryReference').textContent='┄ '+(data.reference_label||'行业中位数');
+  document.querySelector('.legend .orange').hidden=metric==='dividend_payout';
+  document.querySelector('.legend .blue').hidden=metric==='dividend_payout';
+  $('onlyPicks').disabled=metric==='dividend_payout';
+  renderCoverage(data.coverage);
   $('method').textContent+=' '+metricInfo().note;
   $('metricNote').textContent=metricInfo().note+(metricInfo().records===0?' 当前数据库暂无该指标有效数据。':'');
   renderPicks();years(false);renderRoster();draw();message('就绪 · 悬停曲线加粗高亮，点击查看主营业务；右侧勾选控制曲线显示。');
  }catch(e){if(token===state.request)message('读取失败：'+e.message);}finally{if(token===state.request){state.loading=false;updateIndustryNav();}}
+}
+function renderCoverage(rows){
+ const box=$('payoutCoverage');box.replaceChildren();box.hidden=!rows;if(!rows)return;
+ const summary=document.createElement('summary');summary.textContent='查看行业各年支付率、金额与覆盖数量';box.append(summary);
+ const table=document.createElement('table');const head=document.createElement('tr');
+ for(const title of ['年度','支付率估算（%）','分红估算（亿元）','同样本归母利润（亿元）','可用 / 有利润数据公司数']){const cell=document.createElement('th');cell.textContent=title;head.append(cell);}table.append(head);
+ for(const r of [...rows].reverse()){const tr=document.createElement('tr');for(const v of [r.year,fmt(r.payout,2),fmt(r.dividend_yi,2),fmt(r.profit_yi,2),r.matched+' / '+r.available]){const td=document.createElement('td');td.textContent=v;tr.append(td);}table.append(tr);}box.append(table);
 }
 function renderPicks(){const box=$('picks');box.replaceChildren();const sel=state.data.selection;for(const c of [...new Set([sel.best_code,...sel.top3_codes].filter(Boolean))]){const s=state.data.stocks.find(x=>x.code===c);const b=document.createElement('button');b.className='pick';b.style.borderLeft=`4px solid ${color(c)}`;b.textContent=`${tags(c)} · ${s.name} ${c} · ${cap(s)}`;b.onclick=()=>selectCompany(s);box.append(b);}if(!sel.best_code){const p=document.createElement('p');p.textContent=sel.best_status;box.append(p);}if(state.data.reason){const p=document.createElement('p');p.className='muted';p.textContent=`当前指标样本 ${state.data.reason.n} 年 · 中位数 ${valueText(state.data.reason.median)} · 四分位距 ${fmt(state.data.reason.iqr,2)} ${unit()==='%'?'个百分点':unit()}`;box.append(p);}}
 function years(keep=true){let all=[...state.stocks.values()].flatMap(s=>s.values.map(v=>v[0])).concat(state.data.median.map(v=>v[0]));if(!all.length)all=[state.catalog.last_year];const lo=Math.min(...all),hi=Math.max(...all);const oldFrom=+$('from').value,oldTo=+$('to').value;for(const id of ['from','to']){$(id).replaceChildren();for(let y=lo;y<=hi;y++)option($(id),y,y);}$('from').value=keep&&oldFrom>=lo&&oldFrom<=hi?oldFrom:lo;$('to').value=keep&&oldTo>=lo&&oldTo<=hi?oldTo:hi;}
@@ -135,7 +148,7 @@ function draw(){if(!state.data)return;const canvas=$('chart'),ctx=canvas.getCont
  for(const s of all){const hot=s.code===focus;line(s.code,s.values,color(s.code),hot?4.5:important(s.code)?2.6:1,focus?(hot?1:.12):important(s.code)?1:.25);}
  line(null,state.data.median,'#24354a',1.8,focus?.4:.95,true);
  if(!all.length){ctx.textAlign='center';ctx.fillText('没有勾选的达标个股；可放宽筛选或勾选个股',w/2,h/2);}
- $('axisnote').textContent=(compressed?`纵轴采用对称对数：±${threshold}${unit()}内线性，外侧压缩；保留原值。`:'纵轴线性。')+' 缺失年份断线，极端值保留；黑色虚线始终为原行业中位数。';
+ $('axisnote').textContent=(compressed?`纵轴采用对称对数：±${threshold}${unit()}内线性，外侧压缩；保留原值。`:'纵轴线性。')+' 缺失年份断线，极端值保留；黑色虚线为'+(state.data.reference_label||'原行业中位数')+'。';
 }
 function distance(px,py,a,b){const dx=b.x-a.x,dy=b.y-a.y,t=dx||dy?Math.max(0,Math.min(1,((px-a.x)*dx+(py-a.y)*dy)/(dx*dx+dy*dy))):0;return Math.hypot(px-a.x-t*dx,py-a.y-t*dy);}
 let mouseFrame=0;
