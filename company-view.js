@@ -1,6 +1,6 @@
 'use strict';
 // Company details use the same stock API and metric definitions as industry view.
-const companyView={code:null,group:null,epoch:0,shares:null,sharesRequest:null,
+const companyView={code:null,group:null,epoch:0,shares:null,sharesRequest:null,marketMetrics:new Set([2,3,4,5]),
  metrics:new Set(['gross_margin','profit_amount','roe','revenue_amount','cashflow_amount','debt_ratio'])};
 function companyPeers(){
  const inside=new Set((state.data?.stocks||[]).map(s=>s.code));
@@ -81,11 +81,18 @@ async function showCompanyMarket(stock){
   box.replaceChildren(companyElement('h3','季度末与最新交易日 · 估值、市值、股息率'));
   const rows=data.stocks[code]||[];
   box.append(companyElement('p',`该股最新观测日 ${rows.at(-1)?.[1]||'暂无'} ｜ 全市场数据截至 ${data.as_of} ｜ 快照生成 ${data.updated_at}`,'muted'),companyElement('p',data.note,'muted'));
-  if(!rows.length){box.append(companyElement('p','暂无该股季度估值数据'));return;}
   const metrics=[[2,'PE（TTM）','倍'],[3,'PB','倍'],[4,'分红率 · 股息率估算','%'],[5,'总市值','亿元']];
-  for(const [column,name,unitName] of metrics){const card=companyElement('section',undefined,'company-metric-card market-metric-card');card.style.marginBottom='14px';
+  const controls=companyElement('div',undefined,'company-metrics');
+  for(const [column,name] of metrics){const label=companyElement('label'),input=document.createElement('input');input.type='checkbox';input.checked=companyView.marketMetrics.has(column);
+   input.onchange=()=>{input.checked?companyView.marketMetrics.add(column):companyView.marketMetrics.delete(column);showCompanyMarket(stock);};
+   label.append(input,document.createTextNode(name));controls.append(label);}
+  box.append(controls);
+  if(!rows.length){box.append(companyElement('p','暂无该股季度估值数据'));return;}
+  const chosen=metrics.filter(m=>companyView.marketMetrics.has(m[0]));
+  if(!chosen.length){box.append(companyElement('p','请勾选要显示的季度指标。'));return;}
+  for(const [column,name,unitName] of chosen){const card=companyElement('section',undefined,'company-metric-card market-metric-card');card.style.marginBottom='14px';
    card.append(companyElement('h4',name),miniChart(rows.map(r=>[r[1],r[column],r[0]]),name,unitName,'quarter'));box.append(card);}
-  const details=companyElement('details');details.append(companyElement('summary','季度日期、实际交易日及原值'),companyTable(['期间','实际交易日',...metrics.map(m=>m[1]+'（'+m[2]+'）')],[...rows].reverse().map(r=>[r[0],r[1],...metrics.map(m=>fmt(r[m[0]],2))])));box.append(details);
+  const details=companyElement('details');details.append(companyElement('summary','季度日期、实际交易日及原值'),companyTable(['期间','实际交易日',...chosen.map(m=>m[1]+'（'+m[2]+'）')],[...rows].reverse().map(r=>[r[0],r[1],...chosen.map(m=>fmt(r[m[0]],2))])));box.append(details);
  }catch(e){if(companyView.code===code)box.textContent='季度数据读取失败：'+e.message;}
 }
 async function showCompanyDashboard(stock){
