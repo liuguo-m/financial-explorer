@@ -12,3 +12,7 @@
  .years{gap:6px}.years select{width:83px}.years button{min-height:35px}#plot{height:390px}.legend{gap:8px;font-size:11px}.charthead h2{font-size:18px}
 }
 @media(max-width:940px) and (orientation:landscape){#plot{height:68vh}}
+
+[hidden]{display:none!important}.view-tabs,.company-nav{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:14px 0}.view-tabs [aria-pressed=true]{background:#174b70;color:white}.company-nav{position:sticky;top:0;background:white;padding:12px 0;z-index:3;border-bottom:1px solid #e1e9f0}.company-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.company-metric-card{border:1px solid #dfe8ef;border-radius:8px;padding:12px;min-width:0}.company-metric-card h4{margin:0 0 10px}.company-metric-card svg{width:100%;display:block}.company-metric-card .muted{font-size:11px;line-height:1.5}.company-metrics{display:flex;flex-wrap:wrap;gap:10px;padding:12px 0}.company-metrics label{display:flex;align-items:center;gap:5px;font-size:12px}.company-metrics input{width:16px;height:16px;margin:0}.company-table{overflow:auto;max-height:420px}.company-table th{white-space:nowrap}.company-table td{min-width:90px}#companyShares{margin-top:24px}@media(max-width:760px){.company-grid{grid-template-columns:1fr}.company-nav span{order:3;flex-basis:100%;font-size:12px}.company-nav button{flex:1}}
+
+#companyShares td:first-child{white-space:nowrap}
