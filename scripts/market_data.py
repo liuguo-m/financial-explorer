@@ -137,14 +137,27 @@ def restore_live(root=ROOT):
     if not isinstance(live.get('stocks'), dict) or not live['stocks'] or not isinstance(events, list):
         raise ValueError('Invalid deployed snapshot; refusing to overwrite')
     archive = json.loads((root/'data/market_archive.json').read_text(encoding='utf-8'))
-    # A lagging CDN must not erase a committed quarter; refuse and retry later.
-    if live['as_of'] < archive['as_of']:
-        raise ValueError('Published snapshot is older than the archive; retry later')
+    # A prior run may have committed a quarter but failed to deploy it. Merge
+    # that checkpoint forward instead of getting stuck on the older live site.
+    archive_ahead = live['as_of'] < archive['as_of']
     for code, rows in archive['stocks'].items():
         existing = {r[0]: r for r in live['stocks'].get(code, [])}
         for row in rows:
-            existing.setdefault(row[0], row)
+            if archive_ahead:
+                existing[row[0]] = row
+            else:
+                existing.setdefault(row[0], row)
+        archived_days = [r[1] for key,r in existing.items() if key != '最新']
+        if '最新' in existing and archived_days and existing['最新'][1] <= max(archived_days):
+            existing.pop('最新')
         live['stocks'][code] = sorted(existing.values(), key=lambda r: (r[0] == '最新', r[0]))
+    archived_events = json.loads((root/'data/market_dividends_archive.json').read_text(encoding='utf-8'))
+    batches = [events, archived_events] if archive_ahead else [archived_events, events]
+    merged_events = {tuple(e[:3]): e for batch in batches for e in batch}
+    payloads['market_dividends.json'] = list(merged_events.values())
+    if archive_ahead:
+        live['as_of'] = archive['as_of']
+        live['updated_at'] = archive['updated_at']
     for name, payload in payloads.items():
         write(root/'data'/name, payload)
     print('Restored published daily snapshot: '+live['as_of'], flush=True)
