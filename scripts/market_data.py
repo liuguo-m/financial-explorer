@@ -5,6 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 import json
 import math
 from pathlib import Path
+import sys
 import time
 import requests
 
@@ -93,6 +94,62 @@ def write(path, data):
     path.write_text(json.dumps(data, ensure_ascii=False, separators=(',', ':'), allow_nan=False), encoding='utf-8')
 
 
+def checkpoint_payload(data):
+    """A checkpoint contains completed quarters only, never the latest daily row."""
+    stocks = {code: [row for row in rows if row[0] != '最新'] for code, rows in data['stocks'].items()}
+    periods = [row[0] for rows in stocks.values() for row in rows]
+    if not periods:
+        return None
+    return dict(stocks=stocks, as_of=max(row[1] for rows in stocks.values() for row in rows),
+                archived_through=max(periods), note=data['note'], updated_at=data['updated_at'])
+
+
+def save_checkpoint(root=ROOT):
+    path = root/'data/market_archive.json'
+    data = json.loads((root/'data/market_quarterly.json').read_text(encoding='utf-8'))
+    checkpoint = checkpoint_payload(data)
+    old = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {}
+    if checkpoint is None or checkpoint['archived_through'] <= old.get('archived_through', ''):
+        print('No new completed quarter; no Git data checkpoint', flush=True)
+        return False
+    events = json.loads((root/'data/market_dividends.json').read_text(encoding='utf-8'))
+    events = [e for e in events if e[2] <= checkpoint['archived_through']]
+    write(path, checkpoint)
+    write(root/'data/market_dividends_archive.json', events)
+    print('Saved quarter checkpoint through '+checkpoint['archived_through'], flush=True)
+    return True
+
+
+def restore_live(root=ROOT):
+    """Reuse the deployed mutable snapshot, including on code-only pushes.
+
+    Fail closed on network errors: deploying a stale Git seed could otherwise
+    replace newer daily data or lose a not-yet-checkpointed quarter boundary.
+    """
+    base = 'https://liuguo-m.github.io/financial-explorer/data/'
+    payloads = {}
+    for name in ('market_quarterly.json', 'market_dividends.json'):
+        response = requests.get(base+name, params={'refresh': time.time_ns()}, timeout=90)
+        response.raise_for_status()
+        payloads[name] = response.json()
+    live = payloads['market_quarterly.json']
+    events = payloads['market_dividends.json']
+    if not isinstance(live.get('stocks'), dict) or not live['stocks'] or not isinstance(events, list):
+        raise ValueError('Invalid deployed snapshot; refusing to overwrite')
+    archive = json.loads((root/'data/market_archive.json').read_text(encoding='utf-8'))
+    # A lagging CDN must not erase a committed quarter; refuse and retry later.
+    if live['as_of'] < archive['as_of']:
+        raise ValueError('Published snapshot is older than the archive; retry later')
+    for code, rows in archive['stocks'].items():
+        existing = {r[0]: r for r in live['stocks'].get(code, [])}
+        for row in rows:
+            existing.setdefault(row[0], row)
+        live['stocks'][code] = sorted(existing.values(), key=lambda r: (r[0] == '最新', r[0]))
+    for name, payload in payloads.items():
+        write(root/'data'/name, payload)
+    print('Restored published daily snapshot: '+live['as_of'], flush=True)
+
+
 def report(name, filters, page_size=5000):
     rows, page, pages = [], 1, 1
     while page <= pages:
@@ -161,4 +218,12 @@ def refresh():
 
 
 if __name__ == '__main__':
-    refresh()
+    mode = sys.argv[1] if len(sys.argv) > 1 else 'refresh'
+    if mode == 'restore':
+        restore_live()
+    elif mode == 'checkpoint':
+        save_checkpoint()
+    elif mode == 'refresh':
+        refresh()
+    else:
+        raise SystemExit('Unknown mode')

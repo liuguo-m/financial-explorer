@@ -5,3 +5,6 @@ __pycache__/
 .env*
 *.log
 .DS_Store
+# Mutable daily data lives in the deployed site; Git stores quarter checkpoints.
+/data/market_quarterly.json
+/data/market_dividends.json
