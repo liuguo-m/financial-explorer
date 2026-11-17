@@ -48,16 +48,24 @@ function miniChart(values,label,unitName,dateMode=false){
  const tx=v=>dateMode?Date.parse(v+'T00:00:00Z'):v;
  const minX=Math.min(...points.map(v=>tx(v[0]))),maxX=Math.max(...points.map(v=>tx(v[0])));
  let lo=Math.min(0,...points.map(v=>v[1])),hi=Math.max(0,...points.map(v=>v[1]));if(lo===hi)hi=lo+1;
- const x=t=>62+(tx(t)-minX)/(maxX-minX||1)*370,y=v=>155-(v-lo)/(hi-lo)*130;
+ const labels=points.map(([,v])=>fmt(v,dateMode?4:2));
+ const spacing=Math.max(56,...labels.map(s=>s.length*7+16));
+ const times=points.map(p=>tx(p[0])),gaps=times.slice(1).map((t,i)=>t-times[i]).filter(g=>g>0);
+ const span=Math.max(370,gaps.length?(maxX-minX)/Math.min(...gaps)*spacing:370),right=62+span,width=right+55;
+ svg.setAttribute('viewBox',`0 0 ${width} 210`);svg.style.minWidth=width+'px';
+ const x=t=>62+(tx(t)-minX)/(maxX-minX||1)*span,y=v=>165-(v-lo)/(hi-lo)*120;
  const element=(tag,attrs,text)=>{const e=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,v);if(text!==undefined)e.textContent=text;svg.append(e);return e;};
- for(const v of [lo,(lo+hi)/2,hi]){element('line',{x1:62,x2:432,y1:y(v),y2:y(v),stroke:'#e0e8ee'});element('text',{x:57,y:y(v)+4,'text-anchor':'end','font-size':11,fill:'#63778a'},fmt(v,2));}
+ for(const v of [lo,(lo+hi)/2,hi]){element('line',{x1:62,x2:right,y1:y(v),y2:y(v),stroke:'#e0e8ee'});element('text',{x:57,y:y(v)+4,'text-anchor':'end','font-size':11,fill:'#63778a'},fmt(v,2));}
  element('text',{x:62,y:13,'font-size':11,fill:'#63778a'},unitName+' · 线性轴');
  let previous=null;
  for(const [t,v] of points){if(previous&&(dateMode||t===previous[0]+1))element('line',{x1:x(previous[0]),x2:x(t),y1:y(previous[1]),y2:y(v),stroke:'#2875aa','stroke-width':2});
   const dot=element('circle',{cx:x(t),cy:y(v),r:3,fill:'#2875aa'});const title=document.createElementNS(ns,'title');title.textContent=t+'：'+fmt(v,4)+unitName;dot.append(title);previous=[t,v];}
- element('text',{x:62,y:180,'font-size':11,fill:'#63778a'},String(points[0][0]));
- if(points.length>1)element('text',{x:432,y:180,'text-anchor':'end','font-size':11,fill:'#63778a'},String(points.at(-1)[0]));
- return svg;
+ points.forEach(([t,v],i)=>{
+  element('text',{class:'point-value',x:x(t),y:y(v)-10,'text-anchor':'middle','font-size':12,'font-weight':600,fill:'#174b70',stroke:'white','stroke-width':3,'paint-order':'stroke'},labels[i]);
+  element('text',{x:x(t),y:195,'text-anchor':'middle','font-size':10,fill:'#63778a'},String(t));
+ });
+ const wrap=companyElement('div',undefined,'company-chart-scroll');wrap.style.overflowX='auto';wrap.append(svg);
+ return wrap;
 }
 async function showCompanyDashboard(stock){
  companyView.code=stock.code;companyView.group=state.group;const epoch=++companyView.epoch;updateCompanyNav();
@@ -72,7 +80,7 @@ async function showCompanyDashboard(stock){
  const results=await Promise.all(chosen.map(async key=>{try{return {key,data:await api('/api/stock',{code:stock.code,metric:key})};}catch(e){return {key,error:e.message};}}));
  if(epoch!==companyView.epoch)return;
  box.replaceChildren(controls);
- box.append(companyElement('p','各指标独立纵轴；金额单位为亿元。年报缺失断线，原值及缺失原因见下表。','muted'));
+ box.append(companyElement('p','曲线各点标注数值；年份较多时可左右滑动。各指标独立纵轴，金额单位为亿元；年报缺失断线，原值及缺失原因见下表。','muted'));
  const grid=companyElement('div',undefined,'company-grid'),allYears=new Set();
  for(const result of results){const meta=state.catalog.metrics[result.key],card=companyElement('section',undefined,'company-metric-card');card.append(companyElement('h4',meta.name));
   if(result.error){card.append(companyElement('p','读取失败：'+result.error));}else{
