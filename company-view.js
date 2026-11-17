@@ -20,7 +20,7 @@ function moveCompany(offset){
 }
 function setCompanyMode(on){
  $('companyPanel').hidden=!on;document.querySelectorAll('.industry-panel').forEach(e=>e.hidden=on);
- $('industryView').setAttribute('aria-pressed',String(!on));$('singleView').setAttribute('aria-pressed',String(on));if(!on)draw();
+ $('industryView').setAttribute('aria-pressed',String(!on));$('singleView').setAttribute('aria-pressed',String(on));if(!on)draw();else requestAnimationFrame(()=>document.querySelectorAll('.company-chart-scroll').forEach(e=>e.scrollLeft=e.scrollWidth));
 }
 $('industryView').onclick=()=>setCompanyMode(false);
 $('singleView').onclick=()=>{setCompanyMode(true);if(!companyView.code)moveCompany(1);};
@@ -29,7 +29,7 @@ $('nextCompany').onclick=()=>moveCompany(1);
 function syncCompanyView(){
  if(companyView.group!==state.group){
   companyView.epoch++;companyView.code=null;companyView.group=state.group;
-  $('companyDashboard').replaceChildren();$('companyShares').replaceChildren();
+  $('companyDashboard').replaceChildren();$('companyShares').replaceChildren();$('companyMarket').replaceChildren();
  }
  updateCompanyNav();
  if(companyView.code){const s=state.stocks.get(companyView.code);if(s&&!$('companyPanel').hidden)selectCompany(s);}else if(!$('companyPanel').hidden)moveCompany(1);
@@ -45,10 +45,11 @@ function miniChart(values,label,unitName,dateMode=false){
  svg.setAttribute('viewBox','0 0 460 190');svg.setAttribute('role','img');svg.setAttribute('aria-label',label+'历史趋势');
  const points=values.filter(v=>Number.isFinite(v[1]));
  if(!points.length)return companyElement('p','暂无有效数据','muted');
- const tx=v=>dateMode?Date.parse(v+'T00:00:00Z'):v;
+ const positions=new Map(values.map((p,i)=>[p[0],i]));
+ const tx=v=>dateMode==='quarter'?positions.get(v):dateMode?Date.parse(v+'T00:00:00Z'):v;
  const minX=Math.min(...points.map(v=>tx(v[0]))),maxX=Math.max(...points.map(v=>tx(v[0])));
  let lo=Math.min(0,...points.map(v=>v[1])),hi=Math.max(0,...points.map(v=>v[1]));if(lo===hi)hi=lo+1;
- const labels=points.map(([,v])=>fmt(v,dateMode?4:2));
+ const labels=points.map(([,v])=>fmt(v,dateMode===true?4:2));
  // Adjacent labels alternate above/below; only every second label shares a row.
  const spacing=Math.max(25,...labels.map(s=>(s.length*6.5+12)/2));
  const times=points.map(p=>tx(p[0])),gaps=times.slice(1).map((t,i)=>t-times[i]).filter(g=>g>0);
@@ -59,15 +60,33 @@ function miniChart(values,label,unitName,dateMode=false){
  for(const v of [lo,(lo+hi)/2,hi]){element('line',{x1:62,x2:right,y1:y(v),y2:y(v),stroke:'#e0e8ee'});element('text',{x:57,y:y(v)+4,'text-anchor':'end','font-size':11,fill:'#63778a'},fmt(v,2));}
  element('text',{x:62,y:13,'font-size':11,fill:'#63778a'},unitName+' · 线性轴');
  let previous=null;
- for(const [t,v] of points){if(previous&&(dateMode||t===previous[0]+1))element('line',{x1:x(previous[0]),x2:x(t),y1:y(previous[1]),y2:y(v),stroke:'#2875aa','stroke-width':2});
+ for(const [t,v] of points){const adjacent=dateMode==='quarter'?positions.get(t)===positions.get(previous?.[0])+1:dateMode||t===previous?.[0]+1;if(previous&&adjacent)element('line',{x1:x(previous[0]),x2:x(t),y1:y(previous[1]),y2:y(v),stroke:'#2875aa','stroke-width':2});
   const dot=element('circle',{cx:x(t),cy:y(v),r:3,fill:'#2875aa'});const title=document.createElementNS(ns,'title');title.textContent=t+'：'+fmt(v,4)+unitName;dot.append(title);previous=[t,v];}
  points.forEach(([t,v],i)=>{
   element('text',{class:'point-value',x:x(t),y:y(v)+(i%2?18:-11),'text-anchor':'middle','font-size':11,'font-weight':600,fill:'#174b70',stroke:'white','stroke-width':3,'paint-order':'stroke'},labels[i]);
-  const tick=element('text',{x:x(t),y:201,'text-anchor':'middle','font-size':9,fill:'#63778a'},dateMode?String(t).slice(0,4):String(t));
+  const period=points[i][2];const tickLabel=dateMode==='quarter'?(period==='最新'?'最新':String(t).slice(2,4)+'Q'+Math.ceil(Number(String(period||t).slice(5,7))/3)):dateMode?String(t).slice(0,4):String(t);
+  const tick=element('text',{x:x(t),y:201,'text-anchor':'middle','font-size':9,fill:'#63778a'},tickLabel);
   if(dateMode){const title=document.createElementNS(ns,'title');title.textContent=t;tick.append(title);}
  });
  const wrap=companyElement('div',undefined,'company-chart-scroll');wrap.style.overflowX='auto';wrap.append(svg);
+ requestAnimationFrame(()=>{wrap.scrollLeft=wrap.scrollWidth;});
  return wrap;
+}
+let marketRequest=null;
+async function showCompanyMarket(stock){
+ const box=$('companyMarket'),code=stock.code;box.textContent='正在读取季度末及最新交易日数据…';
+ try{
+  if(!marketRequest)marketRequest=fetch(new URL('data/market_quarterly.json',document.baseURI)).then(r=>{if(!r.ok)throw Error('季度估值数据暂不可用');return r.json();}).catch(e=>{marketRequest=null;throw e;});
+  const data=await marketRequest;if(companyView.code!==code)return;
+  box.replaceChildren(companyElement('h3','季度末与最新交易日 · 估值、市值、股息率'));
+  const rows=data.stocks[code]||[];
+  box.append(companyElement('p',`该股最新观测日 ${rows.at(-1)?.[1]||'暂无'} ｜ 全市场数据截至 ${data.as_of} ｜ 快照生成 ${data.updated_at}`,'muted'),companyElement('p',data.note,'muted'));
+  if(!rows.length){box.append(companyElement('p','暂无该股季度估值数据'));return;}
+  const metrics=[[2,'PE（TTM）','倍'],[3,'PB','倍'],[4,'分红率 · 股息率估算','%'],[5,'总市值','亿元']];
+  for(const [column,name,unitName] of metrics){const card=companyElement('section',undefined,'company-metric-card market-metric-card');card.style.marginBottom='14px';
+   card.append(companyElement('h4',name),miniChart(rows.map(r=>[r[1],r[column],r[0]]),name,unitName,'quarter'));box.append(card);}
+  const details=companyElement('details');details.append(companyElement('summary','季度日期、实际交易日及原值'),companyTable(['期间','实际交易日',...metrics.map(m=>m[1]+'（'+m[2]+'）')],[...rows].reverse().map(r=>[r[0],r[1],...metrics.map(m=>fmt(r[m[0]],2))])));box.append(details);
+ }catch(e){if(companyView.code===code)box.textContent='季度数据读取失败：'+e.message;}
 }
 async function showCompanyDashboard(stock){
  companyView.code=stock.code;companyView.group=state.group;const epoch=++companyView.epoch;updateCompanyNav();
