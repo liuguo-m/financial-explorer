@@ -4,17 +4,21 @@ on:
     # UTC 10:00 = Asia/Shanghai 18:00, Monday-Friday.
     - cron: '0 10 * * 1-5'
   workflow_dispatch:
+  issues:
+    types: [opened, edited, closed, reopened, deleted, labeled, unlabeled, transferred]
   push:
     branches: [main]
 permissions:
   contents: write
   pages: write
   id-token: write
+  issues: read
 concurrency:
   group: financial-pages
   cancel-in-progress: false
 jobs:
   publish:
+    if: github.event_name != 'issues' || github.event.issue.user.login == github.repository_owner
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment:
@@ -30,11 +34,11 @@ jobs:
           pip install requests
           python scripts/market_data.py restore
       - name: Update quarter-end and latest market data
-        if: github.event_name != 'push'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           python scripts/market_data.py
       - name: Save only new quarter-end checkpoints
-        if: github.event_name != 'push'
+        if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
           python scripts/market_data.py checkpoint
           git config user.name 'github-actions[bot]'
@@ -44,6 +48,10 @@ jobs:
             git commit -m 'Archive completed quarter-end market data'
             git push
           fi
+      - name: Export owner notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/export_notes.py
       - uses: actions/configure-pages@v5
       - name: Prepare public site
         run: |

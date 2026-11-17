@@ -19,7 +19,7 @@ function moveCompany(offset){
  const target=peers[index<0?0:index+offset];if(target)selectCompany(target);
 }
 function setCompanyMode(on){
- $('companyPanel').hidden=!on;document.querySelectorAll('.industry-panel').forEach(e=>e.hidden=on);
+ $('companyPanel').hidden=!on;if(typeof updateNotesContext==='function')updateNotesContext();document.querySelectorAll('.industry-panel').forEach(e=>e.hidden=on);
  $('industryView').setAttribute('aria-pressed',String(!on));$('singleView').setAttribute('aria-pressed',String(on));if(!on)draw();else requestAnimationFrame(()=>document.querySelectorAll('.company-chart-scroll').forEach(e=>e.scrollLeft=e.scrollWidth));
 }
 $('industryView').onclick=()=>setCompanyMode(false);
@@ -31,7 +31,7 @@ function syncCompanyView(){
   companyView.epoch++;companyView.code=null;companyView.group=state.group;
   $('companyDashboard').replaceChildren();$('companyShares').replaceChildren();$('companyMarket').replaceChildren();
  }
- updateCompanyNav();
+ updateCompanyNav();if(typeof updateNotesContext==='function')updateNotesContext();
  if(companyView.code){const s=state.stocks.get(companyView.code);if(s&&!$('companyPanel').hidden)selectCompany(s);}else if(!$('companyPanel').hidden)moveCompany(1);
 }
 function companyElement(tag,text,className){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(className)e.className=className;return e;}
