@@ -2,5 +2,6 @@
   "repository": "liuguo-m/financial-explorer",
   "owner_id": 38692225,
   "owner_login": "liuguo-m",
-  "label": "investment-note"
+  "label": "investment-note",
+  "watchlist_label": "investment-watchlist"
 }

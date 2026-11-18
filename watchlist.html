@@ -1,0 +1,9 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>自选股汇总 · 财务观察台</title><link rel="stylesheet" href="./style.css"></head>
+<body><header><div><span class="eyebrow">MY WATCHLIST</span><h1>自选股汇总</h1></div><a href="./index.html" style="color:white">← 返回行业对比</a></header>
+<main><section class="card"><h2>自选股与心得</h2><p class="muted">PE、PB、股息率和总市值采用该股最新交易记录；ROE 等财务指标采用最近有效年报，分别标注日期。新增心得独立保存，不覆盖原记录。自选股按股票代码关联，跨行业共用。</p>
+<div class="watch-toolbar"><input id="watchSearch" type="search" placeholder="搜索代码、名称、行业、分组、心得" aria-label="搜索自选股"><label>分组<select id="watchGroup"><option value="">全部分组</option></select></label><label>行业<select id="watchIndustry"><option value="">全部行业</option></select></label><label>排序<select id="watchSort"><option value="added">最近加入</option><option value="cap">总市值从大到小</option><option value="pe">PE 从小到大</option><option value="pb">PB 从小到大</option><option value="roe">ROE 从大到小</option></select></label><button id="watchRefresh">刷新自选与心得</button></div>
+<div class="watch-toolbar"><label class="watch-add-stock">添加股票<input id="watchAddCode" list="watchStockOptions" placeholder="搜索股票代码或名称后选择" aria-label="添加自选股票"></label><datalist id="watchStockOptions"></datalist><label>新自选分组<input id="watchAddGroup" value="观察" maxlength="60" aria-label="新自选分组"></label><a id="watchAdd" hidden class="note-write" target="_blank" rel="noopener noreferrer">加入自选（GitHub）</a></div>
+<p class="muted">所有写入使用现有 GitHub 账号：编辑记录可修改分组和关注理由；关闭记录可移除自选，重新打开可恢复。移除自选不删除心得。保存后自动同步，通常需要几分钟。</p><p id="watchStatus" role="status">正在加载…</p></section>
+<section class="card" style="margin-top:18px"><div class="watch-table-wrap"><table id="watchTable"></table></div><p id="watchEmpty" class="muted" hidden>还没有自选股。可在本页或行业个股列表点击“加自选”，到 GitHub 保存后再刷新。</p></section></main>
+<script src="./watchlist-common.js"></script><script src="./watchlist-page.js"></script></body></html>

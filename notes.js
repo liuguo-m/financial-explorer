@@ -13,7 +13,7 @@ function newNoteUrl(target){
  const url=new URL(`https://github.com/${config.repository}/issues/new`);
  const marker='<!-- financial-note: '+JSON.stringify({kind:target.kind,key:target.key})+' -->';
  url.searchParams.set('labels',config.label);
- url.searchParams.set('title','[心得] '+target.name);
+ url.searchParams.set('title','[心得] '+target.name+' · '+noteDate(new Date().toISOString()));
  url.searchParams.set('body',marker+'\n\n## 我的判断\n\n\n## 观察依据\n\n\n## 风险与待验证问题\n\n\n---\n关联股票/行业由顶部标记确定，请保留该标记。');
  return url.href;
 }
@@ -30,7 +30,8 @@ function renderNotes(){
  const notes=notesState.data.notes.filter(n=>n.kind===target.kind&&n.key===target.key&&(!query||(n.title+'\n'+n.body).toLocaleLowerCase().includes(query)));
  if(!notes.length){box.append(noteText('p',query?'没有匹配的心得。':'暂无心得，点击“写心得”在 GitHub 保存第一条。','muted'));return;}
  for(const n of notes){const detail=document.createElement('details');detail.className='note-item';
-  detail.append(noteText('summary',n.title+' · '+noteDate(n.updated_at)));
+  detail.append(noteText('summary',n.title+' · 创建 '+noteDate(n.created_at||n.updated_at)));
+  detail.append(noteText('p','创建：'+noteDate(n.created_at||n.updated_at)+' ｜ 最近修改：'+noteDate(n.updated_at)+'（北京时间）','muted'));
   // Notes are untrusted text. Do not render HTML, scripts or event handlers.
   detail.append(noteText('div',n.body,'note-body'));
   const link=noteText('a','在 GitHub 查看／修改／归档');
@@ -42,7 +43,7 @@ async function loadNotes(force=false){
  try{
   if(force||!notesState.request)notesState.request=fetch(new URL('data/notes.json'+(force?'?t='+Date.now():''),document.baseURI),{cache:'no-cache'}).then(r=>{if(!r.ok)throw Error('心得暂时无法读取');return r.json();});
   const data=await notesState.request;if(epoch!==notesState.epoch)return;
-  notesState.data=data;renderNotes();
+  notesState.data=data;renderNotes();window.dispatchEvent(new Event('notes-ready'));
  }catch(e){if(epoch===notesState.epoch){notesState.request=null;$('notesStatus').textContent='读取失败：'+e.message+'，请点击刷新重试。';}}
 }
 function updateNotesContext(){
