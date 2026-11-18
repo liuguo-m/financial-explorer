@@ -88,5 +88,12 @@ class CommodityTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             m.merge([], rows, self.today)
 
+    def test_umicore_unit_conversion_and_schema_validation(self):
+        text = '\ufeff"Date";"€ / kg"\n"2006-01-03";88,050.00\n"2026-11-18";284,600.00\n'
+        self.assertEqual(m.umicore_rows(text), [['2006-01-03', 88.05], ['2026-11-18', 284.6]])
+        for bad in [text.replace('€ / kg', '$ / oz'), '<html>unavailable</html>', 'Date;€ / kg\n2026-11-18;NA']:
+            with self.assertRaises(ValueError):
+                m.umicore_rows(bad)
+
 
 if __name__ == '__main__': unittest.main()

@@ -19,7 +19,7 @@ function list(){
 }
 async function select(id){
  const ticket=++commodityState.request,x=commodityState.items.find(i=>i.id===id);commodityState.selected=id;list();
- el('chartTitle').textContent=x.name+' · 价格历史';el('basis').replaceChildren(document.createTextNode(`${x.basis}｜${x.frequency}｜${x.first_date||'—'} 至 ${x.latest_date||'—'}｜${x.count} 条｜`),link('数据来源',x.source_url));
+ el('chartTitle').textContent=x.name+' · 价格历史';el('basis').replaceChildren(document.createTextNode(`${x.basis}｜${x.frequency}｜${x.first_date||'—'} 至 ${x.latest_date||'—'}｜${x.count} 条｜`),link('数据来源',x.source_url),document.createTextNode(x.history_note?' ｜'+x.history_note:''));
  el('hints').replaceChildren(...x.hints.map(h=>node('div',`${h.direction}：${h.target}。${h.note}`,'hint-row')));
  el('related').replaceChildren();for(const r of x.related||[]){const p=node('p');p.append(link(`${r.name} ${r.code}`,`./index.html?stock=${encodeURIComponent(r.code)}`),document.createTextNode(`${r.direction}：${r.note} `),link('业务依据',r.source),document.createTextNode(' 核对：'+r.reviewed));el('related').append(p);}
  el('windowStats').replaceChildren(...[1,5,10].map(y=>{const w=x.windows?.[y];const box=node('div',undefined,'window-stat');box.append(node('strong',`${y}年：${percent(w)}`),node('p',w?`区间位置 ${fmt(w.position,1)}% · ${w.samples} 个样本`:'暂无数据'),node('small',w?`最低 ${fmt(w.min)} / 最高 ${fmt(w.max)} ${x.unit}`:''));return box;}));
@@ -34,7 +34,7 @@ function draw(item){
  const ns='http://www.w3.org/2000/svg',svg=document.createElementNS(ns,'svg');svg.setAttribute('viewBox',`0 0 ${W} ${H}`);svg.setAttribute('role','img');svg.setAttribute('aria-label',item.name+'历史价格曲线');
  function add(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;svg.append(n);return n;}
  for(let j=0;j<5;j++){const v=lo+(hi-lo)*j/4,y=py(v);add('line',{x1:left,x2:W-right,y1:y,y2:y,stroke:'#dfe7ef'});add('text',{x:left-8,y:y+4,'text-anchor':'end','font-size':12,fill:'#526578'},fmt(v));}
- add('path',{d:rows.map((r,i)=>`${i?'L':'M'}${px(r[0]).toFixed(2)},${py(r[1]).toFixed(2)}`).join(' '),fill:'none',stroke:'#24718b','stroke-width':2});
+ add('path',{d:rows.map((r,i)=>`${i&&(Date.parse(r[0])-Date.parse(rows[i-1][0]))/86400000<=item.max_gap_days?'L':'M'}${px(r[0]).toFixed(2)},${py(r[1]).toFixed(2)}`).join(' '),fill:'none',stroke:'#24718b','stroke-width':2});
  const w=item.windows?.[period];if(w?.complete){const sorted=[...prices].sort((a,b)=>a-b),p=sorted[Math.floor((sorted.length-1)*.1)];add('line',{x1:left,x2:W-right,y1:py(p),y2:py(p),stroke:'#14957d','stroke-dasharray':'6 4'});add('text',{x:left+6,y:py(p)-7,'font-size':12,fill:'#087e68',stroke:'white','stroke-width':3,'paint-order':'stroke'},'10%分位参考价 '+fmt(p));}
  const ticks=W<600?2:4;for(let i=0;i<=ticks;i++){const r=rows[Math.round((rows.length-1)*i/ticks)];add('text',{x:px(r[0]),y:H-13,'text-anchor':i===0?'start':i===ticks?'end':'middle','font-size':12,fill:'#526578'},r[0]);}
  const latest=rows.at(-1);add('circle',{cx:px(latest[0]),cy:py(latest[1]),r:4,fill:'#bd6829'});add('text',{x:W-right-5,y:Math.max(15,py(latest[1])-9),'text-anchor':'end','font-size':13,fill:'#a54f12'},fmt(latest[1]));

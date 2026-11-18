@@ -253,6 +253,183 @@
           "reviewed": "2026-11-18"
         }
       ]
+    },
+    {
+      "id": "platinum",
+      "name": "铂（铂族）",
+      "symbol": "PT",
+      "source": "umicore",
+      "unit": "欧元/克",
+      "frequency": "工作日报价",
+      "basis": "Umicore加工产品销售报价",
+      "source_url": "https://pmm.umicore.com/en/prices/platinum/",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "含铂矿产与回收企业",
+          "note": "原料价值可能提高，但应结合金属含量、采购定价、回收率和套保；加工企业不等同于矿山敞口。"
+        },
+        {
+          "direction": "下跌",
+          "target": "汽车催化剂、首饰与化工催化剂相关企业",
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；欧元汇率也会影响本报价。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600459",
+          "name": "贵研铂业",
+          "direction": "产业链关联（影响混合）",
+          "note": "涉及铂族金属材料、催化剂和资源回收；观察金属库存、加工费和套保，不把金属上涨直接视为利润上涨。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-04-27/1225197446.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "palladium",
+      "name": "钯（铂族）",
+      "symbol": "PD",
+      "source": "umicore",
+      "unit": "欧元/克",
+      "frequency": "工作日报价",
+      "basis": "Umicore加工产品销售报价",
+      "source_url": "https://pmm.umicore.com/en/prices/palladium/",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "含钯矿产与回收企业",
+          "note": "原料价值可能提高，但应结合金属含量、采购定价、回收率和套保；加工企业不等同于矿山敞口。"
+        },
+        {
+          "direction": "下跌",
+          "target": "汽油车尾气催化剂、电子材料相关企业",
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；欧元汇率也会影响本报价。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600459",
+          "name": "贵研铂业",
+          "direction": "产业链关联（影响混合）",
+          "note": "涉及铂族金属材料、催化剂和资源回收；观察金属库存、加工费和套保，不把金属上涨直接视为利润上涨。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-04-27/1225197446.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "rhodium",
+      "name": "铑（铂族）",
+      "symbol": "RH",
+      "source": "umicore",
+      "unit": "欧元/克",
+      "frequency": "工作日报价",
+      "basis": "Umicore加工产品销售报价",
+      "source_url": "https://pmm.umicore.com/en/prices/rhodium/",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "含铑矿产与回收企业",
+          "note": "原料价值可能提高，但应结合金属含量、采购定价、回收率和套保；加工企业不等同于矿山敞口。"
+        },
+        {
+          "direction": "下跌",
+          "target": "汽车尾气催化剂、玻璃用铂铑合金相关企业",
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；欧元汇率也会影响本报价。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600459",
+          "name": "贵研铂业",
+          "direction": "产业链关联（影响混合）",
+          "note": "涉及铂族金属材料、催化剂和资源回收；观察金属库存、加工费和套保，不把金属上涨直接视为利润上涨。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-04-27/1225197446.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ],
+      "history_note": "早期历史存在缺口，图中断线；最近10年通过覆盖检查。"
+    },
+    {
+      "id": "iridium",
+      "name": "铱（铂族）",
+      "symbol": "IR",
+      "source": "umicore",
+      "unit": "欧元/克",
+      "frequency": "工作日报价",
+      "basis": "Umicore加工产品销售报价",
+      "source_url": "https://pmm.umicore.com/en/prices/iridium/",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "含铱矿产与回收企业",
+          "note": "原料价值可能提高，但应结合金属含量、采购定价、回收率和套保；加工企业不等同于矿山敞口。"
+        },
+        {
+          "direction": "下跌",
+          "target": "电解水催化剂、耐高温材料及电极相关企业",
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；欧元汇率也会影响本报价。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600459",
+          "name": "贵研铂业",
+          "direction": "产业链关联（影响混合）",
+          "note": "涉及铂族金属材料、催化剂和资源回收；观察金属库存、加工费和套保，不把金属上涨直接视为利润上涨。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-04-27/1225197446.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "ruthenium",
+      "name": "钌（铂族）",
+      "symbol": "RU",
+      "source": "umicore",
+      "unit": "欧元/克",
+      "frequency": "工作日报价",
+      "basis": "Umicore加工产品销售报价",
+      "source_url": "https://pmm.umicore.com/en/prices/ruthenium/",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "含钌矿产与回收企业",
+          "note": "原料价值可能提高，但应结合金属含量、采购定价、回收率和套保；加工企业不等同于矿山敞口。"
+        },
+        {
+          "direction": "下跌",
+          "target": "电子材料、硬盘及化工催化剂相关企业",
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；欧元汇率也会影响本报价。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600459",
+          "name": "贵研铂业",
+          "direction": "产业链关联（影响混合）",
+          "note": "涉及铂族金属材料、催化剂和资源回收；观察金属库存、加工费和套保，不把金属上涨直接视为利润上涨。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-04-27/1225197446.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ],
+      "history_note": "早期历史存在缺口，图中断线；最近10年通过覆盖检查。"
     }
   ]
 }

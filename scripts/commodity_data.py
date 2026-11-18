@@ -1,5 +1,7 @@
 """Persistent commodity history. Add instruments in commodities-config.json."""
 import calendar
+import csv
+import io
 import json
 import math
 import time
@@ -37,6 +39,10 @@ def request(url, **kwargs):
 
 
 def fetch(item):
+    if item['source'] == 'umicore':
+        today = datetime.now(TZ).date()
+        r = request(f"https://pmm.umicore.com/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/")
+        return umicore_rows(r.text)
     if item['source'] == 'sina_global':
         r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/GlobalFuturesService.getGlobalFuturesDailyKLine', params={'symbol': item['symbol'], 'source': 'web'})
         raw = json.loads(r.text[r.text.index('['):r.text.rindex(']') + 1])
@@ -53,6 +59,23 @@ def fetch(item):
         raw = request('https://hqb.nxin.com/pigindex/getPigIndexChart.shtml', params={'regionId': '0'}).json()['data']
         return [[datetime.fromtimestamp(x[0] / 1000, TZ).date().isoformat(), float(x[6])] for x in raw]
     raise ValueError('Unknown source')
+
+
+def umicore_rows(text):
+    reader = csv.reader(io.StringIO(text.lstrip('\ufeff')), delimiter=';')
+    header = next(reader, [])
+    if header != ['Date', '€ / kg']:
+        raise ValueError('Unexpected Umicore currency/unit or response schema')
+    rows = []
+    for row in reader:
+        if not row or not any(row):
+            continue
+        if len(row) != 2:
+            raise ValueError('Invalid Umicore observation')
+        day = date.fromisoformat(row[0]).isoformat()
+        price = float(row[1].replace(',', '')) / 1000
+        rows.append([day, round(price, 6)])
+    return rows
 
 
 def global_rows(raw, today):
