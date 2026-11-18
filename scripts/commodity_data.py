@@ -43,7 +43,7 @@ def request(url, **kwargs):
 def fetch(item):
     if item['source'] == 'umicore':
         today = datetime.now(TZ).date()
-        url = f"https://pmm.umicore.com/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/"
+        url = f"https://pmm.umicore.com/en/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/"
         r = request(url)
         # The CSV is UTF-8, but its application/csv response has no charset.
         # requests' platform-dependent guessing can corrupt the euro unit symbol.
