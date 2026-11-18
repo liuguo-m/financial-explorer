@@ -78,5 +78,15 @@ class CommodityTests(unittest.TestCase):
         self.assertEqual(rows[0][1], 15)
         self.assertEqual(m.merge([], rows, self.today), [['2025-01-06', 16]])
 
+    def test_global_oil_excludes_unfinished_day_and_preserves_negative_price(self):
+        base = dict(open='30', high='31', low='-40', close='-37.63', volume='100', position='20', settlement='0')
+        raw = [dict(base, date='2020-04-20'), dict(base, date='2020-04-21', close='10')]
+        rows = m.global_rows(raw, date(2020, 4, 21))
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0], ['2020-04-20', -37.63, 30, 31, -40, 100, 20, None])
+        self.assertEqual(m.merge([], rows, self.today, allow_nonpositive=True), rows)
+        with self.assertRaises(ValueError):
+            m.merge([], rows, self.today)
+
 
 if __name__ == '__main__': unittest.main()

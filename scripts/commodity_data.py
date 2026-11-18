@@ -37,6 +37,10 @@ def request(url, **kwargs):
 
 
 def fetch(item):
+    if item['source'] == 'sina_global':
+        r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/GlobalFuturesService.getGlobalFuturesDailyKLine', params={'symbol': item['symbol'], 'source': 'web'})
+        raw = json.loads(r.text[r.text.index('['):r.text.rindex(']') + 1])
+        return global_rows(raw, datetime.now(TZ).date())
     if item['source'] == 'sina':
         r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/InnerFuturesNewService.getDailyKLine', params={'symbol': item['symbol']})
         raw = json.loads(r.text[r.text.index('(') + 1:r.text.rindex(')')])
@@ -51,13 +55,28 @@ def fetch(item):
     raise ValueError('Unknown source')
 
 
-def merge(old, incoming, today):
+def global_rows(raw, today):
+    # The foreign feed also returns an unfinished current-day candle.
+    # At the 18:00 Beijing update, only previous calendar dates are completed.
+    rows = []
+    for x in raw:
+        if date.fromisoformat(x['date']) >= today:
+            continue
+        row = [x['date'], float(x['close'])]
+        row.extend(float(x[k]) if x.get(k) not in (None, '') else None for k in ('open', 'high', 'low', 'volume', 'position', 'settlement'))
+        if row[7] == 0:
+            row[7] = None
+        rows.append(row)
+    return rows
+
+
+def merge(old, incoming, today, allow_nonpositive=False):
     if not incoming:
         raise ValueError('Empty response')
     values = {}
     for row in incoming:
         day = date.fromisoformat(row[0])
-        if day > today or not math.isfinite(row[1]) or row[1] <= 0:
+        if day > today or not math.isfinite(row[1]) or (row[1] <= 0 and not allow_nonpositive):
             raise ValueError('Invalid date or price')
         if any(v is not None and not math.isfinite(v) for v in row[1:]):
             raise ValueError('Non-finite value')
@@ -107,8 +126,8 @@ def main():
         try:
             if existing.get('source', item['source']) != item['source']:
                 raise ValueError('Source change requires a new instrument id')
-            rows = merge(existing['rows'], fetch(item), today)
-            existing = {'id': item['id'], 'source': item['source'], 'fields': ['date', 'price', 'open', 'high', 'low', 'volume', 'open_interest', 'settlement'] if item['source'] == 'sina' else ['date', 'price'], 'rows': rows}
+            rows = merge(existing['rows'], fetch(item), today, item.get('allow_nonpositive', False))
+            existing = {'id': item['id'], 'source': item['source'], 'fields': ['date', 'price', 'open', 'high', 'low', 'volume', 'open_interest', 'settlement'] if item['source'] in ('sina', 'sina_global') else ['date', 'price'], 'rows': rows}
             write(path, existing)
         except Exception as exc:
             error = type(exc).__name__ + ': ' + str(exc)[:180]
