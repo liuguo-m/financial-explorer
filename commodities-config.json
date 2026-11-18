@@ -1,0 +1,187 @@
+{
+  "items": [
+    {
+      "id": "gold",
+      "name": "黄金",
+      "symbol": "AU0",
+      "unit": "元/克",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/AU0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "黄金采选企业",
+          "note": "产品售价上升可能改善利润，仍取决于产量、成本及套保。"
+        },
+        {
+          "direction": "下跌",
+          "target": "黄金首饰加工企业",
+          "note": "原料采购成本可能下降，但库存跌价与终端售价调整可能抵消收益。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600547",
+          "name": "山东黄金",
+          "direction": "上涨关联观察",
+          "note": "自产黄金销售价格可能受益，关注产量、单位成本与套保。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-03-27/1225035674.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "silver",
+      "name": "白银",
+      "symbol": "AG0",
+      "unit": "元/吨",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/AG0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "白银采选及伴生银企业",
+          "note": "需区分自产银与外购原料冶炼，综合金属价格和加工费同样重要。"
+        },
+        {
+          "direction": "下跌",
+          "target": "银浆及光伏等用银企业",
+          "note": "银料成本可能下降，实际收益取决于售价传导、技术替代与库存。"
+        }
+      ],
+      "related": [
+        {
+          "code": "000603",
+          "name": "盛达资源",
+          "direction": "上涨关联观察",
+          "note": "含银多金属采选业务，同时受铅锌等价格、产量与成本影响。",
+          "source": "https://disc.static.szse.cn/download/disc/disk03/finalpage/2026-04-29/e7d24559-3a8a-4817-9798-f151e6702249.PDF",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "copper",
+      "name": "铜",
+      "symbol": "CU0",
+      "unit": "元/吨",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/CU0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "铜矿企业",
+          "note": "自产矿部分可能受益，外购矿冶炼部分还受加工费影响。"
+        },
+        {
+          "direction": "下跌",
+          "target": "电缆与铜加工企业",
+          "note": "采购与营运资金压力可能降低，按加工费定价的企业不一定增加利润。"
+        }
+      ],
+      "related": [
+        {
+          "code": "600362",
+          "name": "江西铜业",
+          "direction": "上涨关联观察",
+          "note": "含采矿、冶炼和加工业务，不能等同于纯铜矿敞口。",
+          "source": "https://www.jxcc.com/uploadFiles/file/20250328/b1d015d7a65f435398c87d3e8809a74a.pdf",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "aluminum",
+      "name": "铝",
+      "symbol": "AL0",
+      "unit": "元/吨",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/AL0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "电解铝企业",
+          "note": "利润取决于铝价相对氧化铝、电力成本的价差。"
+        },
+        {
+          "direction": "下跌",
+          "target": "铝加工及下游制造企业",
+          "note": "原料成本可能下降，需结合订单售价传导和库存跌价。"
+        }
+      ],
+      "related": [
+        {
+          "code": "601600",
+          "name": "中国铝业",
+          "direction": "上涨关联观察",
+          "note": "覆盖氧化铝和电解铝，需结合能源、矿石成本及产品价差。",
+          "source": "https://www.chalco.com.cn/tzzgx/thygg/202603/P020260330341392300660.pdf",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    },
+    {
+      "id": "hog",
+      "name": "生猪",
+      "symbol": "全国成交均价",
+      "unit": "元/公斤",
+      "source": "nxin",
+      "frequency": "周频",
+      "basis": "全国商品猪现货周成交均价",
+      "source_url": "https://hqb.nxin.com/pigindex/index.shtml",
+      "stale_days": 28,
+      "min_samples_year": 40,
+      "max_gap_days": 35,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "生猪养殖企业",
+          "note": "销售价格上升可能改善利润，需结合饲料成本、出栏量与疫病。"
+        },
+        {
+          "direction": "下跌",
+          "target": "屠宰及肉制品企业",
+          "note": "采购成本可能下降，但猪肉销售价格也会变化，重点看加工价差。"
+        }
+      ],
+      "related": [
+        {
+          "code": "002714",
+          "name": "牧原股份",
+          "direction": "上涨关联观察",
+          "note": "生猪养殖与屠宰业务，需结合出栏量、养殖成本和经营现金流。",
+          "source": "https://static.cninfo.com.cn/finalpage/2026-03-28/1225042525.PDF",
+          "reviewed": "2026-11-18"
+        },
+        {
+          "code": "000895",
+          "name": "双汇发展",
+          "direction": "下跌关联观察",
+          "note": "肉制品与屠宰业务，采购成本和销售价格同时变化，重点观察加工价差。",
+          "source": "https://money.finance.sina.com.cn/corp/view/vCB_AllBulletinDetail.php?id=12014906&stockid=000895",
+          "reviewed": "2026-11-18"
+        }
+      ]
+    }
+  ]
+}

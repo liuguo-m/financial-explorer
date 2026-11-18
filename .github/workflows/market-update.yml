@@ -33,6 +33,18 @@ jobs:
         run: |
           pip install requests
           python scripts/market_data.py restore
+      - name: Update commodities and preserve daily history
+        if: github.event_name != 'issues'
+        run: |
+          python scripts/test_commodity_data.py
+          python scripts/commodity_data.py
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add data/commodities.json data/commodity_*.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update commodity history and percentile screening'
+            git push
+          fi
       - name: Update quarter-end and latest market data
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |
