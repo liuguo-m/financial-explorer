@@ -4,11 +4,13 @@ import csv
 import io
 import json
 import math
+import re
 import time
 import zipfile
 from bisect import bisect_right
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import urljoin
 
 import requests
 
@@ -51,9 +53,21 @@ def fetch(item):
             return umicore_rows(r.content.decode('utf-8-sig'))
         except ValueError:
             print('Umicore export retry:', item['symbol'], repr(r.content[:180]), flush=True)
-            # Retry a malformed/empty public export without reusing an edge cache.
-            r = request(url, params={'refresh': str(int(time.time()))}, headers={'Referer': item.get('source_url', 'https://pmm.umicore.com/en/prices/'), 'Accept': 'text/csv,*/*', 'User-Agent': 'Mozilla/5.0'})
-            return umicore_rows(r.content.decode('utf-8-sig'))
+            # Follow the site's current export link in the same public session.
+            # This also picks up the price-type code offered to that visitor.
+            with requests.Session() as session:
+                session.headers.update({'User-Agent': 'Mozilla/5.0', 'Accept-Language': 'en'})
+                page = session.get(item['source_url'], timeout=(10, 40))
+                page.raise_for_status()
+                match = re.search(r'href="([^"]*/api/chart/export/csv/' + re.escape(item['symbol']) + r'/[^\"]+)"', page.text)
+                if not match:
+                    raise ValueError('Supplier page has no public CSV export link')
+                export = urljoin(item['source_url'], match.group(1))
+                export = re.sub(r'/\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}/', '/2006-01-02/' + today.isoformat() + '/', export)
+                print('Umicore page export:', export, flush=True)
+                r = session.get(export, headers={'Referer': item['source_url']}, timeout=(10, 40))
+                r.raise_for_status()
+                return umicore_rows(r.content.decode('utf-8-sig'))
     if item['source'] == 'sina_global':
         r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/GlobalFuturesService.getGlobalFuturesDailyKLine', params={'symbol': item['symbol'], 'source': 'web'})
         raw = json.loads(r.text[r.text.index('['):r.text.rindex(']') + 1])
