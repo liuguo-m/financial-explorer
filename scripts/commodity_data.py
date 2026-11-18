@@ -5,6 +5,8 @@ import io
 import json
 import math
 import time
+import zipfile
+from bisect import bisect_right
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
@@ -78,6 +80,46 @@ def umicore_rows(text):
     return rows
 
 
+def fetch_usd_rates(today):
+    response = request('https://www.ecb.europa.eu/stats/eurofxref/eurofxref-hist.zip')
+    with zipfile.ZipFile(io.BytesIO(response.content)) as archive:
+        name = next(n for n in archive.namelist() if n.endswith('.csv'))
+        reader = csv.DictReader(io.StringIO(archive.read(name).decode('utf-8-sig')))
+        rows = []
+        for raw in reader:
+            row = {k.strip(): v.strip() for k, v in raw.items() if k}
+            day = date.fromisoformat(row['Date'])
+            rate = float(row['USD'])
+            if not math.isfinite(rate) or rate <= 0:
+                raise ValueError('Invalid ECB USD rate')
+            if day <= today:
+                rows.append([day.isoformat(), rate])
+    rows.sort()
+    if not rows or (today - date.fromisoformat(rows[-1][0])).days > 7:
+        raise ValueError('ECB exchange-rate feed is stale')
+    path = ROOT / 'data/commodity_fx_eurusd_archive.json'
+    old = json.loads(path.read_text(encoding='utf-8'))['rows'] if path.exists() else []
+    rows = merge(old, rows, today)
+    write(path, {'source': 'ECB', 'fields': ['date', 'USD_per_EUR'], 'rows': rows})
+    return rows
+
+
+def convert_usd(euro_rows, rates):
+    dates = [r[0] for r in rates]
+    converted = []
+    last_fx = None
+    for day, price in euro_rows:
+        index = bisect_right(dates, day) - 1
+        if index < 0:
+            raise ValueError('Missing historical FX rate')
+        fx_day, rate = rates[index]
+        if (date.fromisoformat(day) - date.fromisoformat(fx_day)).days > 7:
+            raise ValueError('Historical FX gap exceeds 7 days')
+        converted.append([day, round(price * rate, 8)])
+        last_fx = {'date': fx_day, 'usd_per_eur': rate}
+    return converted, last_fx
+
+
 def global_rows(raw, today):
     # The foreign feed also returns an unfinished current-day candle.
     # At the 18:00 Beijing update, only previous calendar dates are completed.
@@ -142,6 +184,12 @@ def main():
     config = json.loads((ROOT / 'commodities-config.json').read_text(encoding='utf-8'))
     today = datetime.now(TZ).date()
     summaries = []
+    rates, fx_error = None, None
+    if any(x.get('currency') == 'USD' and x['source'] == 'umicore' for x in config['items']):
+        try:
+            rates = fetch_usd_rates(today)
+        except Exception as exc:
+            fx_error = str(exc)
     for item in config['items']:
         path = ROOT / 'data' / ('commodity_' + item['id'] + '.json')
         existing = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'rows': []}
@@ -149,14 +197,34 @@ def main():
         try:
             if existing.get('source', item['source']) != item['source']:
                 raise ValueError('Source change requires a new instrument id')
-            rows = merge(existing['rows'], fetch(item), today, item.get('allow_nonpositive', False))
-            existing = {'id': item['id'], 'source': item['source'], 'fields': ['date', 'price', 'open', 'high', 'low', 'volume', 'open_interest', 'settlement'] if item['source'] in ('sina', 'sina_global') else ['date', 'price'], 'rows': rows}
+            metadata = {}
+            if item['source'] == 'umicore' and item.get('currency') == 'USD':
+                if fx_error:
+                    raise ValueError('ECB FX unavailable: ' + fx_error)
+                raw_path = ROOT / 'data' / ('commodity_' + item['id'] + '_eur_archive.json')
+                if raw_path.exists():
+                    old_raw = json.loads(raw_path.read_text(encoding='utf-8'))['rows']
+                elif existing.get('currency', 'EUR') == 'EUR':
+                    old_raw = existing['rows']
+                else:
+                    raise ValueError('Missing original EUR archive; refusing to mix currencies')
+                euro_rows = merge(old_raw, fetch(item), today)
+                rows, last_fx = convert_usd(euro_rows, rates)
+                write(raw_path, {'currency': 'EUR', 'unit': 'EUR/g', 'rows': euro_rows})
+                metadata = {'currency': 'USD', 'fx': last_fx}
+            else:
+                rows = merge(existing['rows'], fetch(item), today, item.get('allow_nonpositive', False))
+            existing = {'id': item['id'], 'source': item['source'], 'fields': ['date', 'price', 'open', 'high', 'low', 'volume', 'open_interest', 'settlement'] if item['source'] in ('sina', 'sina_global') else ['date', 'price'], 'rows': rows, **metadata}
             write(path, existing)
         except Exception as exc:
             error = type(exc).__name__ + ': ' + str(exc)[:180]
             print(item['id'], 'retaining history:', error, flush=True)
+            if item.get('currency') == 'USD' and item['source'] == 'umicore' and existing.get('currency') != 'USD':
+                existing = {'rows': []}  # Never label unconverted EUR as USD.
         if existing['rows']:
             summary = {**item, **statistics(existing['rows'], item, today), 'error': error}
+            if existing.get('fx'):
+                summary['fx'] = existing['fx']
             if error:
                 summary['attention'] = False
             summaries.append(summary)

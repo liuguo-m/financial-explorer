@@ -95,5 +95,42 @@ class CommodityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 m.umicore_rows(bad)
 
+    def test_historical_fx_uses_past_rates_and_rejects_gaps(self):
+        rows, fx = m.convert_usd([['2026-11-16', 10], ['2026-11-17', 20]], [['2026-11-16', 1.1], ['2026-11-18', 1.5]])
+        self.assertEqual(rows, [['2026-11-16', 11], ['2026-11-17', 22]])
+        self.assertEqual(fx['date'], '2026-11-16')
+        for rates in [[], [['2026-11-18', 1.1]], [['2026-11-01', 1.1]]]:
+            with self.assertRaises(ValueError):
+                m.convert_usd([['2026-11-17', 20]], rates)
+
+    def test_fx_migration_is_repeatable_and_retains_originals(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'data').mkdir()
+            item = {**self.item, 'id': 'test', 'source': 'umicore', 'currency': 'USD'}
+            (root / 'commodities-config.json').write_text(json.dumps({'items': [item]}))
+            path = root / 'data/commodity_test.json'
+            path.write_text(json.dumps({'source': 'umicore', 'rows': [['2026-11-16', 10]]}))
+            with patch.object(m, 'ROOT', root), patch.object(m, 'fetch', return_value=[['2026-11-17', 20]]), patch.object(m, 'fetch_usd_rates', return_value=[['2026-11-16', 1.1], ['2026-11-17', 1.2]]), patch.object(m.time, 'sleep'):
+                m.main()
+                m.main()
+            self.assertEqual(json.loads(path.read_text())['rows'], [['2026-11-16', 11], ['2026-11-17', 24]])
+            self.assertEqual(json.loads((root / 'data/commodity_test_eur_archive.json').read_text())['rows'], [['2026-11-16', 10], ['2026-11-17', 20]])
+
+    def test_failed_fx_migration_does_not_mislabel_euros(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'data').mkdir()
+            item = {**self.item, 'id': 'test', 'source': 'umicore', 'currency': 'USD'}
+            (root / 'commodities-config.json').write_text(json.dumps({'items': [item]}))
+            path = root / 'data/commodity_test.json'
+            path.write_text(json.dumps({'source': 'umicore', 'rows': [['2026-11-17', 20]]}))
+            before = path.read_bytes()
+            with patch.object(m, 'ROOT', root), patch.object(m, 'fetch_usd_rates', side_effect=RuntimeError('offline')), patch.object(m.time, 'sleep'):
+                with self.assertRaises(SystemExit):
+                    m.main()
+            self.assertEqual(before, path.read_bytes())
+            self.assertEqual(json.loads((root / 'data/commodities.json').read_text())['items'][0]['count'], 0)
+
 
 if __name__ == '__main__': unittest.main()

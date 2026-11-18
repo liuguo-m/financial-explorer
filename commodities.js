@@ -19,7 +19,7 @@ function list(){
 }
 async function select(id){
  const ticket=++commodityState.request,x=commodityState.items.find(i=>i.id===id);commodityState.selected=id;list();
- el('chartTitle').textContent=x.name+' · 价格历史';el('basis').replaceChildren(document.createTextNode(`${x.basis}｜${x.frequency}｜${x.first_date||'—'} 至 ${x.latest_date||'—'}｜${x.count} 条｜`),link('数据来源',x.source_url),document.createTextNode(x.history_note?' ｜'+x.history_note:''));
+ el('chartTitle').textContent=x.name+' · 价格历史';el('basis').replaceChildren(document.createTextNode(`${x.basis}｜${x.frequency}｜${x.first_date||'—'} 至 ${x.latest_date||'—'}｜${x.count} 条｜`),link('数据来源',x.source_url),document.createTextNode(x.history_note?' ｜'+x.history_note:''));if(x.fx){el('basis').append(document.createTextNode(` ｜换算汇率 ${x.fx.date}：1欧元=${x.fx.usd_per_eur}美元 `),link('ECB汇率',x.fx_source));}
  el('hints').replaceChildren(...x.hints.map(h=>node('div',`${h.direction}：${h.target}。${h.note}`,'hint-row')));
  el('related').replaceChildren();for(const r of x.related||[]){const p=node('p');p.append(link(`${r.name} ${r.code}`,`./index.html?stock=${encodeURIComponent(r.code)}`),document.createTextNode(`${r.direction}：${r.note} `),link('业务依据',r.source),document.createTextNode(' 核对：'+r.reviewed));el('related').append(p);}
  el('windowStats').replaceChildren(...[1,5,10].map(y=>{const w=x.windows?.[y];const box=node('div',undefined,'window-stat');box.append(node('strong',`${y}年：${percent(w)}`),node('p',w?`区间位置 ${fmt(w.position,1)}% · ${w.samples} 个样本`:'暂无数据'),node('small',w?`最低 ${fmt(w.min)} / 最高 ${fmt(w.max)} ${x.unit}`:''));return box;}));
