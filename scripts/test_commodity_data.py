@@ -95,6 +95,12 @@ class CommodityTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 m.umicore_rows(bad)
 
+    def test_umicore_response_decodes_utf8_without_guessing(self):
+        from unittest.mock import Mock
+        response = Mock(content='"Date";"€ / kg"\n"2026-11-17";31,400.00\n'.encode('utf-8'), text='incorrect charset guess')
+        with patch.object(m, 'request', return_value=response):
+            self.assertEqual(m.fetch({'source': 'umicore', 'symbol': 'PD'}), [['2026-11-17', 31.4]])
+
     def test_historical_fx_uses_past_rates_and_rejects_gaps(self):
         rows, fx = m.convert_usd([['2026-11-16', 10], ['2026-11-17', 20]], [['2026-11-16', 1.1], ['2026-11-18', 1.5]])
         self.assertEqual(rows, [['2026-11-16', 11], ['2026-11-17', 22]])

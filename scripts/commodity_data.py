@@ -44,7 +44,9 @@ def fetch(item):
     if item['source'] == 'umicore':
         today = datetime.now(TZ).date()
         r = request(f"https://pmm.umicore.com/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/")
-        return umicore_rows(r.text)
+        # The CSV is UTF-8, but its application/csv response has no charset.
+        # requests' platform-dependent guessing can corrupt the euro unit symbol.
+        return umicore_rows(r.content.decode('utf-8-sig'))
     if item['source'] == 'sina_global':
         r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/GlobalFuturesService.getGlobalFuturesDailyKLine', params={'symbol': item['symbol'], 'source': 'web'})
         raw = json.loads(r.text[r.text.index('['):r.text.rindex(']') + 1])
@@ -67,7 +69,7 @@ def umicore_rows(text):
     reader = csv.reader(io.StringIO(text.lstrip('\ufeff')), delimiter=';')
     header = next(reader, [])
     if header != ['Date', '€ / kg']:
-        raise ValueError('Unexpected Umicore currency/unit or response schema')
+        raise ValueError('Unexpected Umicore currency/unit or response schema: ' + repr(header)[:100])
     rows = []
     for row in reader:
         if not row or not any(row):
