@@ -43,10 +43,17 @@ def request(url, **kwargs):
 def fetch(item):
     if item['source'] == 'umicore':
         today = datetime.now(TZ).date()
-        r = request(f"https://pmm.umicore.com/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/")
+        url = f"https://pmm.umicore.com/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/"
+        r = request(url)
         # The CSV is UTF-8, but its application/csv response has no charset.
         # requests' platform-dependent guessing can corrupt the euro unit symbol.
-        return umicore_rows(r.content.decode('utf-8-sig'))
+        try:
+            return umicore_rows(r.content.decode('utf-8-sig'))
+        except ValueError:
+            print('Umicore export retry:', item['symbol'], repr(r.content[:180]), flush=True)
+            # Retry a malformed/empty public export without reusing an edge cache.
+            r = request(url, params={'refresh': str(int(time.time()))}, headers={'Referer': item.get('source_url', 'https://pmm.umicore.com/en/prices/'), 'Accept': 'text/csv,*/*', 'User-Agent': 'Mozilla/5.0'})
+            return umicore_rows(r.content.decode('utf-8-sig'))
     if item['source'] == 'sina_global':
         r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/GlobalFuturesService.getGlobalFuturesDailyKLine', params={'symbol': item['symbol'], 'source': 'web'})
         raw = json.loads(r.text[r.text.index('['):r.text.rindex(']') + 1])
