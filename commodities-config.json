@@ -39,7 +39,7 @@
       "id": "silver",
       "name": "白银",
       "symbol": "AG0",
-      "unit": "元/吨",
+      "unit": "元/千克",
       "source": "sina",
       "frequency": "交易日日线",
       "basis": "期货主力连续收盘价",
