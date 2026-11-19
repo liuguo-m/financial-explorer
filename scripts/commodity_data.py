@@ -43,14 +43,16 @@ def request(url, **kwargs):
 
 
 def fetch(item):
-    if item['source'] == 'umicore':
+    if item['source'] in ('umicore', 'umicore_usd'):
         today = datetime.now(TZ).date()
-        url = f"https://pmm.umicore.com/en/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/DGVV/"
+        quote_type = 'AMUS' if item['source'] == 'umicore_usd' else 'DGVV'
+        parser = umicore_usd_rows if item['source'] == 'umicore_usd' else umicore_rows
+        url = f"https://pmm.umicore.com/en/api/chart/export/csv/{item['symbol']}/2006-01-02/{today.isoformat()}/{quote_type}/"
         r = request(url)
         # The CSV is UTF-8, but its application/csv response has no charset.
         # requests' platform-dependent guessing can corrupt the euro unit symbol.
         try:
-            return umicore_rows(r.content.decode('utf-8-sig'))
+            return parser(r.content.decode('utf-8-sig'))
         except ValueError:
             print('Umicore export retry:', item['symbol'], repr(r.content[:180]), flush=True)
             # Follow the site's current export link in the same public session.
@@ -63,11 +65,13 @@ def fetch(item):
                 if not match:
                     raise ValueError('Supplier page has no public CSV export link')
                 export = urljoin(item['source_url'], match.group(1))
+                if not export.rstrip('/').endswith('/' + quote_type):
+                    raise ValueError('Supplier region offers a different quotation basis')
                 export = re.sub(r'/\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}/', '/2006-01-02/' + today.isoformat() + '/', export)
                 print('Umicore page export:', export, flush=True)
                 r = session.get(export, headers={'Referer': item['source_url']}, timeout=(10, 40))
                 r.raise_for_status()
-                return umicore_rows(r.content.decode('utf-8-sig'))
+                return parser(r.content.decode('utf-8-sig'))
     if item['source'] == 'sina_global':
         r = request('https://stock2.finance.sina.com.cn/futures/api/jsonp.php/var%20_commodity=/GlobalFuturesService.getGlobalFuturesDailyKLine', params={'symbol': item['symbol'], 'source': 'web'})
         raw = json.loads(r.text[r.text.index('['):r.text.rindex(']') + 1])
@@ -100,6 +104,23 @@ def umicore_rows(text):
         day = date.fromisoformat(row[0]).isoformat()
         price = float(row[1].replace(',', '')) / 1000
         rows.append([day, round(price, 6)])
+    return rows
+
+
+def umicore_usd_rows(text):
+    reader = csv.reader(io.StringIO(text.lstrip('\ufeff')), delimiter=';')
+    header = next(reader, [])
+    if header != ['Date', '$ / toz']:
+        raise ValueError('Unexpected native USD quotation unit: ' + repr(header)[:100])
+    rows = []
+    for row in reader:
+        if not row or not any(row):
+            continue
+        if len(row) != 2:
+            raise ValueError('Invalid native USD observation')
+        rows.append([date.fromisoformat(row[0]).isoformat(), float(row[1].replace(',', ''))])
+    if len(rows) < 200:
+        raise ValueError('Native USD history is unexpectedly short')
     return rows
 
 
@@ -217,8 +238,9 @@ def main():
         path = ROOT / 'data' / ('commodity_' + item['id'] + '.json')
         existing = json.loads(path.read_text(encoding='utf-8')) if path.exists() else {'rows': []}
         error = None
+        native_migration = item['source'] == 'umicore_usd' and existing.get('source') == 'umicore'
         try:
-            if existing.get('source', item['source']) != item['source']:
+            if existing.get('source', item['source']) != item['source'] and not native_migration:
                 raise ValueError('Source change requires a new instrument id')
             metadata = {}
             if item['source'] == 'umicore' and item.get('currency') == 'USD':
@@ -236,7 +258,11 @@ def main():
                 write(raw_path, {'currency': 'EUR', 'unit': 'EUR/g', 'rows': euro_rows})
                 metadata = {'currency': 'USD', 'fx': last_fx}
             else:
-                rows = merge(existing['rows'], fetch(item), today, item.get('allow_nonpositive', False))
+                rows = merge([] if native_migration else existing['rows'], fetch(item), today, item.get('allow_nonpositive', False))
+                if native_migration:
+                    write(ROOT / 'data' / ('commodity_' + item['id'] + '_converted_usd_archive.json'), existing)
+                if item['source'] == 'umicore_usd':
+                    metadata = {'currency': 'USD', 'unit': 'USD/troy_oz', 'quote_type': 'AMUS'}
             existing = {'id': item['id'], 'source': item['source'], 'fields': ['date', 'price', 'open', 'high', 'low', 'volume', 'open_interest', 'settlement'] if item['source'] in ('sina', 'sina_global') else ['date', 'price'], 'rows': rows, **metadata}
             write(path, existing)
         except Exception as exc:
@@ -244,6 +270,8 @@ def main():
             print(item['id'], 'retaining history:', error, flush=True)
             if item.get('currency') == 'USD' and item['source'] == 'umicore' and existing.get('currency') != 'USD':
                 existing = {'rows': []}  # Never label unconverted EUR as USD.
+            if native_migration:
+                existing = {'rows': []}  # Never label old USD/g history as native USD/oz.
         if existing['rows']:
             summary = {**item, **statistics(existing['rows'], item, today), 'error': error}
             if existing.get('fx'):

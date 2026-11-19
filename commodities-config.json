@@ -258,10 +258,10 @@
       "id": "platinum",
       "name": "铂（铂族）",
       "symbol": "PT",
-      "source": "umicore",
-      "unit": "美元/克",
+      "source": "umicore_usd",
+      "unit": "美元/金衡盎司",
       "frequency": "工作日报价",
-      "basis": "Umicore加工产品销售报价（美元折算）",
+      "basis": "Umicore 10am美元报价",
       "source_url": "https://pmm.umicore.com/en/prices/platinum/",
       "stale_days": 12,
       "min_samples_year": 200,
@@ -275,7 +275,7 @@
         {
           "direction": "下跌",
           "target": "汽车催化剂、首饰与化工催化剂相关企业",
-          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；已按各日历史汇率折算美元，供应商报价仍含加工因素。"
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；采用供应商原生美元报价，非交易所期货价格。"
         }
       ],
       "related": [
@@ -288,17 +288,16 @@
           "reviewed": "2026-11-18"
         }
       ],
-      "currency": "USD",
-      "fx_source": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+      "currency": "USD"
     },
     {
       "id": "palladium",
       "name": "钯（铂族）",
       "symbol": "PD",
-      "source": "umicore",
-      "unit": "美元/克",
+      "source": "umicore_usd",
+      "unit": "美元/金衡盎司",
       "frequency": "工作日报价",
-      "basis": "Umicore加工产品销售报价（美元折算）",
+      "basis": "Umicore 10am美元报价",
       "source_url": "https://pmm.umicore.com/en/prices/palladium/",
       "stale_days": 12,
       "min_samples_year": 200,
@@ -312,7 +311,7 @@
         {
           "direction": "下跌",
           "target": "汽油车尾气催化剂、电子材料相关企业",
-          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；已按各日历史汇率折算美元，供应商报价仍含加工因素。"
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；采用供应商原生美元报价，非交易所期货价格。"
         }
       ],
       "related": [
@@ -325,17 +324,16 @@
           "reviewed": "2026-11-18"
         }
       ],
-      "currency": "USD",
-      "fx_source": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+      "currency": "USD"
     },
     {
       "id": "rhodium",
       "name": "铑（铂族）",
       "symbol": "RH",
-      "source": "umicore",
-      "unit": "美元/克",
+      "source": "umicore_usd",
+      "unit": "美元/金衡盎司",
       "frequency": "工作日报价",
-      "basis": "Umicore加工产品销售报价（美元折算）",
+      "basis": "Umicore 10am美元报价",
       "source_url": "https://pmm.umicore.com/en/prices/rhodium/",
       "stale_days": 12,
       "min_samples_year": 200,
@@ -349,7 +347,7 @@
         {
           "direction": "下跌",
           "target": "汽车尾气催化剂、玻璃用铂铑合金相关企业",
-          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；已按各日历史汇率折算美元，供应商报价仍含加工因素。"
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；采用供应商原生美元报价，非交易所期货价格。"
         }
       ],
       "related": [
@@ -362,18 +360,16 @@
           "reviewed": "2026-11-18"
         }
       ],
-      "history_note": "早期历史存在缺口，图中断线；最近10年通过覆盖检查。",
-      "currency": "USD",
-      "fx_source": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+      "currency": "USD"
     },
     {
       "id": "iridium",
       "name": "铱（铂族）",
       "symbol": "IR",
-      "source": "umicore",
-      "unit": "美元/克",
+      "source": "umicore_usd",
+      "unit": "美元/金衡盎司",
       "frequency": "工作日报价",
-      "basis": "Umicore加工产品销售报价（美元折算）",
+      "basis": "Umicore 10am美元报价",
       "source_url": "https://pmm.umicore.com/en/prices/iridium/",
       "stale_days": 12,
       "min_samples_year": 200,
@@ -387,7 +383,7 @@
         {
           "direction": "下跌",
           "target": "电解水催化剂、耐高温材料及电极相关企业",
-          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；已按各日历史汇率折算美元，供应商报价仍含加工因素。"
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；采用供应商原生美元报价，非交易所期货价格。"
         }
       ],
       "related": [
@@ -400,17 +396,16 @@
           "reviewed": "2026-11-18"
         }
       ],
-      "currency": "USD",
-      "fx_source": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+      "currency": "USD"
     },
     {
       "id": "ruthenium",
       "name": "钌（铂族）",
       "symbol": "RU",
-      "source": "umicore",
-      "unit": "美元/克",
+      "source": "umicore_usd",
+      "unit": "美元/金衡盎司",
       "frequency": "工作日报价",
-      "basis": "Umicore加工产品销售报价（美元折算）",
+      "basis": "Umicore 10am美元报价",
       "source_url": "https://pmm.umicore.com/en/prices/ruthenium/",
       "stale_days": 12,
       "min_samples_year": 200,
@@ -424,7 +419,7 @@
         {
           "direction": "下跌",
           "target": "电子材料、硬盘及化工催化剂相关企业",
-          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；已按各日历史汇率折算美元，供应商报价仍含加工因素。"
+          "note": "原料成本可能下降，收益取决于售价传导、库存和替代技术；采用供应商原生美元报价，非交易所期货价格。"
         }
       ],
       "related": [
@@ -437,9 +432,7 @@
           "reviewed": "2026-11-18"
         }
       ],
-      "history_note": "早期历史存在缺口，图中断线；最近10年通过覆盖检查。",
-      "currency": "USD",
-      "fx_source": "https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html"
+      "currency": "USD"
     }
   ]
 }

@@ -138,5 +138,29 @@ class CommodityTests(unittest.TestCase):
             self.assertEqual(before, path.read_bytes())
             self.assertEqual(json.loads((root / 'data/commodities.json').read_text())['items'][0]['count'], 0)
 
+    def test_native_usd_parser_keeps_troy_ounce_prices(self):
+        text = '"Date";"$ / toz"\n' + ''.join(f'"{(date(2025, 1, 1)+timedelta(days=i)).isoformat()}";1,234.50\n' for i in range(200))
+        self.assertEqual(m.umicore_usd_rows(text)[0], ['2025-01-01', 1234.5])
+        with self.assertRaises(ValueError):
+            m.umicore_usd_rows(text.replace('$ / toz', '€ / kg'))
+
+    def test_native_usd_migration_never_splices_converted_history(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / 'data').mkdir()
+            item = {**self.item, 'id': 'test', 'source': 'umicore_usd', 'currency': 'USD'}
+            (root / 'commodities-config.json').write_text(json.dumps({'items': [item]}))
+            path = root / 'data/commodity_test.json'
+            old = {'source': 'umicore', 'currency': 'USD', 'rows': [['2006-01-03', 20], ['2026-11-17', 40]]}
+            path.write_text(json.dumps(old))
+            native = [['2010-01-04', 1200], ['2026-11-18', 1500]]
+            with patch.object(m, 'ROOT', root), patch.object(m, 'fetch', return_value=native), patch.object(m, 'fetch_usd_rates') as fx, patch.object(m.time, 'sleep'):
+                m.main()
+                m.main()
+                fx.assert_not_called()
+            self.assertEqual(json.loads(path.read_text())['rows'], native)
+            self.assertEqual(json.loads(path.read_text())['unit'], 'USD/troy_oz')
+            self.assertEqual(json.loads((root / 'data/commodity_test_converted_usd_archive.json').read_text()), old)
+
 
 if __name__ == '__main__': unittest.main()
