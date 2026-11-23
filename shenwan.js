@@ -4,7 +4,7 @@ const windows = [1, 3, 5, 10];
 const metrics = ['收盘指数', 'PE', 'PB'];
 const colors = ['#216dcb', '#a65624', '#087e68'];
 const day = 86400000;
-let catalog, selection, rows, requestId = 0;
+let catalog, parents, rows, requestId = 0;
 const fmt = n => Number.isFinite(n) ? n.toLocaleString('zh-CN', {maximumFractionDigits: 2}) : '—';
 const time = d => Date.parse(d);
 function cutoff(date, years) {
@@ -33,12 +33,22 @@ async function read(url) {
     if (!response.ok) throw new Error('读取失败（' + response.status + '）');
     return response.json();
 }
-function filters() {
-    const code = $('industry').value;
+const key = item => item.level + ':' + item.code;
+function filters(keepSelection = true) {
+    const previous = keepSelection ? $('industry').value : '';
+    const parent = $('parent').value;
     const query = $('search').value.trim();
-    const items = catalog.items.filter(x => x.level === Number($('level').value) && (x.name + x.code).includes(query));
-    $('industry').replaceChildren(...items.map(x => new Option(x.name + ' ' + x.code, x.code)));
-    if (items.some(x => x.code === code)) $('industry').value = code;
+    const items = catalog.items.filter(item => {
+        const group = item.level === 1 ? item.code : parents[item.code];
+        return (!parent || group === parent) && (item.name + item.code).includes(query);
+    });
+    const options = items.map(item => {
+        const prefix = item.level === 1 ? '一级 · ' : '二级 · ';
+        return new Option(prefix + item.name + ' ' + item.code, key(item));
+    });
+    $('industry').replaceChildren(...options);
+    $('industry').disabled = options.length === 0;
+    if (options.some(option => option.value === previous)) $('industry').value = previous;
     select();
 }
 async function select() {
@@ -47,14 +57,13 @@ async function select() {
     $('summary').replaceChildren();
     $('charts').replaceChildren();
     $('cursor').textContent = '移到或点按图表查看同日数据';
-    const level = Number($('level').value);
-    selection = catalog.items.find(x => x.level === level && x.code === $('industry').value);
-    if (!selection) {
+    const item = catalog.items.find(x => key(x) === $('industry').value);
+    if (!item) {
         $('title').textContent = '行业走势';
         $('status').textContent = '没有匹配的行业';
         return;
     }
-    const item = selection;
+    const {level} = item;
     $('title').textContent = item.name + ' · ' + item.code;
     $('status').textContent = '正在读取数据…';
     try {
@@ -166,9 +175,21 @@ function charts() {
     });
     show(points.length - 1);
 }
-$('level').onchange = filters;
-$('search').oninput = filters;
+$('parent').onchange = () => {
+    $('search').value = '';
+    filters(false);
+};
+$('search').oninput = () => filters();
 $('industry').onchange = select;
 $('period').onchange = charts;
 window.addEventListener('resize', charts);
-read('./data/shenwan.json').then(data => {catalog = data; filters();}).catch(error => {$('status').textContent = error.message;});
+Promise.all([read('./data/shenwan.json'), read('./data/shenwan_parents.json')])
+    .then(([data, hierarchy]) => {
+        catalog = data;
+        parents = hierarchy;
+        const groups = catalog.items.filter(item => item.level === 1);
+        $('parent').replaceChildren(new Option('全部行业', ''), ...groups.map(item => new Option(item.name, item.code)));
+        if (groups.length) $('parent').value = groups[0].code;
+        filters(false);
+    })
+    .catch(error => {$('status').textContent = error.message;});
