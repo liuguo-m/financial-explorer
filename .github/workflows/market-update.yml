@@ -45,6 +45,16 @@ jobs:
             git commit -m 'Update commodity history and percentile screening'
             git push
           fi
+      - name: Update and archive official Shenwan daily indices
+        if: github.event_name != 'issues'
+        timeout-minutes: 5
+        run: |
+          python scripts/shenwan_data.py
+          git add data/shenwan*.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update official Shenwan index history'
+            git push
+          fi
       - name: Update quarter-end and latest market data
         if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
         run: |

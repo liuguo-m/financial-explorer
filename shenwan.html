@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>申万行业走势与估值</title><link rel="stylesheet" href="./style.css">
+<link rel="stylesheet" href="./shenwan.css">
+</head><body>
+<header><h1>申万行业走势与估值</h1><nav><a href="./index.html">行业财务</a> · <a href="./commodities.html">大宗商品</a></nav></header>
+<main><section class="card filters">
+<label>行业级别<select id="level"><option value="1">一级行业</option><option value="2">二级行业</option></select></label>
+<label>搜索行业<input id="search" type="search" placeholder="名称或代码"></label>
+<label>选择行业<select id="industry"></select></label>
+<label>显示区间<select id="period"><option value="1">近1年</option><option value="3">近3年</option><option value="5" selected>近5年</option><option value="10">近10年</option><option value="0">全部历史</option></select></label>
+</section>
+<section class="card view">
+<h2 id="title">行业走势</h2><p id="status" role="status">正在读取数据…</p>
+<div id="summary"></div>
+<p id="cursor" aria-live="off">移到或点按图表查看同日数据</p>
+<div id="charts"></div>
+<p class="muted">三图共用日期轴，缺失数据留空。分位以该行业最新记录日为截止，采用样本中秩，PE、PB 只统计正值，负值仍在曲线中显示。日期跨度不足、窗口内记录有大段缺口或有效值太少时，分位显示覆盖不足。PE 沿用申万源站口径。<a href="https://www.swsresearch.com/institute_sw/allIndex/analysisIndex">申万指数分析</a></p>
+</section></main><script src="./shenwan.js"></script></body></html>
