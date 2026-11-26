@@ -80,6 +80,9 @@ async function loadSteelIndicators() {
     select.onchange = renderHistory;
     renderHistory();
     status.textContent = '最近检查 ' + checked.slice(0, 16).replace('T', ' ') + '（北京时间）。各指标的统计期见下表。';
+    mountSteelCharts(history).catch(error => {
+        document.getElementById('steel-chart-notice').textContent = '走势读取失败：' + error.message;
+    });
 }
 
 loadSteelIndicators().catch(error => {

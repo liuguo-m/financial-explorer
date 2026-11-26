@@ -1,4 +1,5 @@
 """Collect factual observations from public steel reports and NBS releases."""
+import argparse
 import calendar
 import json
 import re
@@ -22,6 +23,41 @@ SEEDS = (
     'https://gc.mysteel.com/a/26111917/BE6D86D8F8148A26.html',
     'https://news.mysteel.com/a/26111215/8A2D6B4CD3BC37C2.html',
     'https://tks.mysteel.com/datas/a/26112008/0621394B87D69146.html',
+    'https://gc.mysteel.com/a/26091015/5BAEF9F3FE4E8000.html',
+    'https://m.mysteel.com/a/26102215/637BC10C5D4376F5_abc.html',
+    'https://news.mysteel.com/a/26091717/FFFC0B4F20BAA91B.html',
+    'https://news.mysteel.com/a/26092415/E8C44A190EE426A3.html',
+    'https://gc.mysteel.com/a/26090315/20FDD7F0634FB85E.html',
+    'https://news.mysteel.com/a/26100816/8EA7CECC3C24431F.html',
+    'https://news.mysteel.com/a/26093020/5E65C6212387AE6C.html',
+    'https://news.mysteel.com/a/26080617/1A2C5F9DB69E00EB.html',
+)
+BACKFILL_INVENTORY = (
+    'https://gc.mysteel.com/a/25123123/0FD75A71554676A6.html',
+    'https://gc.mysteel.com/a/26060417/F1501D7BBAE76A2F.html',
+    'https://gc.mysteel.com/a/26061117/0DACC052D9E5B08C.html',
+    'https://gc.mysteel.com/a/26061815/CCCC4DF83181BA99.html',
+    'https://news.mysteel.com/a/26070915/8E981BDB5977E47C.html',
+    'https://gc.mysteel.com/a/26071616/655FA0D511A402C4.html',
+    'https://gc.mysteel.com/a/26072316/B83CBFA2F9A9888C.html',
+)
+BACKFILL_NBS = (
+    '202403/t20240327_1948176.html',
+    '202404/t20240427_1948752.html',
+    '202405/t20240527_1954143.html',
+    '202406/t20240627_1955196.html',
+    '202407/t20240727_1955855.html',
+    '202408/t20240827_1956106.html',
+    '202409/t20240927_1956742.html',
+    '202410/t20241027_1957183.html',
+    '202411/t20241127_1957580.html',
+    '202412/t20241227_1957913.html',
+    '202501/t20250127_1958485.html',
+    '202601/t20260127_1962382.html',
+    '202404/t20240416_1948583.html',
+    '202407/t20240715_1955616.html',
+    '202410/t20241018_1957036.html',
+    '202501/t20250117_1958324.html',
 )
 MYSTEEL_LISTS = (
     'https://tks.mysteel.com/datas/',
@@ -29,14 +65,16 @@ MYSTEEL_LISTS = (
     'https://gc.mysteel.com/',
     'https://m.mysteel.com/old/',
     'https://m.mysteel.com/hot/54638.html',
+    'https://gc.mysteel.com/a/26110916/BC96C2E5100392DE.html',
 )
 MONTHLY = re.compile(r'(20\d{2})年\s*1\s*[—–－~至-]\s*(\d{1,2})月份?全国规模以上工业企业利润')
+ANNUAL = re.compile(r'(20\d{2})年\s*全国规模以上工业企业利润')
 QUARTERLY = re.compile(r'(20\d{2})年([一二三四])季度全国规模以上工业产能利用率')
 NUMBER = r'([-−]?\d[\d,]*(?:\.\d+)?)'
 WEEKLY = {
     'mill_profit': r'钢厂盈利率\s*(?:为\s*)?' + NUMBER + r'\s*%',
     'blast_furnace': r'高炉炼铁产能利用率\s*(?:为\s*)?' + NUMBER + r'\s*%',
-    'hot_metal': r'日均铁水产量\s*(?:为\s*)?' + NUMBER + r'\s*万吨',
+    'hot_metal': r'日均\s*铁水产量\s*(?:为\s*)?' + NUMBER + r'\s*万吨',
 }
 INVENTORY = re.compile(r'五大(?:钢材(?:品种)?|品种(?:钢材)?)[\s：:]*'
                        r'(?:总库存|库存总量)(?:\s*为)?\s*' + NUMBER + r'\s*万吨')
@@ -53,14 +91,15 @@ def fetch(url):
 
 
 def title_matches(title):
-    return MONTHLY.search(title) or QUARTERLY.search(title) or any(
+    return MONTHLY.search(title) or ANNUAL.search(title) or QUARTERLY.search(title) or any(
         phrase in title for phrase in ('钢厂高炉检修调查统计', '聚焦钢铁产业数据')
     )
 
 
 def discover(url, soup):
     for anchor in soup.select('a[href]'):
-        if not title_matches(anchor.get_text(' ', strip=True)):
+        title = re.sub(r'^\s*\[\d{2}-\d{2}\]\s*', '', anchor.get_text(' ', strip=True))
+        if not title_matches(title):
             continue
         target = urljoin(url, anchor['href'])
         parts = urlsplit(target)
@@ -85,10 +124,13 @@ def parse(url, soup):
     title = soup.title.get_text(' ', strip=True)
     host = urlsplit(url).hostname or ''
     if host == 'www.stats.gov.cn':
-        match = MONTHLY.search(title) or QUARTERLY.search(title)
-        if not match:
+        titles = [title, *(h.get_text(' ', strip=True) for h in soup.select('h1,h2,.title'))]
+        headline = next((t for t in titles if MONTHLY.search(t) or QUARTERLY.search(t) or ANNUAL.search(t)), '')
+        match = MONTHLY.search(headline) or QUARTERLY.search(headline)
+        annual = ANNUAL.search(headline)
+        if not match and not annual:
             return []
-        year, period = match.groups()
+        year, period = match.groups() if match else (annual[1], '12')
         year = int(year)
         for tr in soup.select('tr'):
             cells = [td.get_text(' ', strip=True) for td in tr.find_all(['th', 'td'], recursive=False)]
@@ -145,27 +187,45 @@ def monthly_margin(cumulative):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--backfill', action='store_true')
+    args = parser.parse_args()
     data = json.loads(PATH.read_text(encoding='utf-8')) if PATH.exists() else {}
     history = data.setdefault('history', {})
     today = datetime.now(TZ).date().isoformat()
-    list_pages = 6 if history.get('cumulative') else 24
+    list_pages = 26 if args.backfill else 6
     lists = [NBS, *(f'{NBS}index_{i}.html' for i in range(1, list_pages)), *MYSTEEL_LISTS]
-    with ThreadPoolExecutor(max_workers=5) as pool:
+    if args.backfill:
+        lists.extend(f'https://tks.mysteel.com/datas/article/pa4262,7073aaaaaa{i}.html' for i in range(2, 6))
+        lists.extend(f'https://tks.mysteel.com/datas/article/pa4262a0311aaaaa{i}.html' for i in range(1, 6))
+    with ThreadPoolExecutor(max_workers=6 if args.backfill else 4) as pool:
         links = set(SEEDS)
+        if args.backfill:
+            links.update(BACKFILL_INVENTORY)
+            for path in BACKFILL_NBS:
+                links.add(urljoin(NBS, path))
+                links.add('https://www.stats.gov.cn/zwfwck/sjfb/' + path)
+                links.add('https://www.stats.gov.cn/xxgk/sjfb/zxfb2020/' + path)
         for url, page in zip(lists, pool.map(fetch, lists)):
             if page:
                 links.update(discover(url, page))
         previous_urls = {r['url'] for values in history.values() for r in values.values()}
-        urls = sorted(links - previous_urls)
-        for url, page in zip(urls, pool.map(fetch, urls)):
-            if not page:
-                continue
-            try:
-                for key, day, record in parse(url, page):
-                    if day <= today:
-                        history.setdefault(key, {})[day] = record
-            except (ValueError, IndexError) as exc:
-                print(f'Unexpected release format at {url}: {exc}', flush=True)
+        for depth in range(3 if args.backfill else 1):
+            urls = sorted(links - previous_urls)
+            if depth:
+                urls = urls[:80]
+            previous_urls.update(urls)
+            for url, page in zip(urls, pool.map(fetch, urls)):
+                if not page:
+                    continue
+                if args.backfill and 'mysteel.com' in urlsplit(url).netloc:
+                    links.update(discover(url, page))
+                try:
+                    for key, day, record in parse(url, page):
+                        if day <= today:
+                            history.setdefault(key, {})[day] = record
+                except (ValueError, IndexError) as exc:
+                    print(f'Unexpected release format at {url}: {exc}', flush=True)
     history['margin'] = monthly_margin(history.get('cumulative', {}))
     data['checked'] = datetime.now(TZ).isoformat(timespec='seconds')
     write(PATH, data)

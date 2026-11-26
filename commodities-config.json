@@ -485,6 +485,32 @@
         }
       ],
       "related": []
+    },
+    {
+      "id": "steel_coke",
+      "name": "焦炭",
+      "symbol": "J0",
+      "unit": "元/吨",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "大商所期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/J0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "焦炭生产企业",
+          "note": "盈利还取决于焦煤成本。"
+        },
+        {
+          "direction": "下跌",
+          "target": "高炉炼铁企业",
+          "note": "观察焦炭采购价格及钢厂利润变化。"
+        }
+      ],
+      "related": []
     }
   ]
 }
