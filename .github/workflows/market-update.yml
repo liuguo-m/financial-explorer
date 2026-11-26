@@ -32,7 +32,7 @@ jobs:
           python-version: '3.12'
       - name: Restore latest published snapshot
         run: |
-          pip install requests
+          pip install requests beautifulsoup4
           python scripts/market_data.py restore
       - name: Update commodities and preserve daily history
         if: github.event_name != 'issues'
@@ -44,6 +44,16 @@ jobs:
           git add data/commodities.json data/commodity_*.json
           if ! git diff --cached --quiet; then
             git commit -m 'Update commodity history and percentile screening'
+            git push
+          fi
+      - name: Update public steel fundamentals
+        if: github.event_name != 'issues'
+        timeout-minutes: 4
+        run: |
+          python scripts/steel_indicators.py
+          git add data/steel_indicators.json
+          if ! git diff --cached --quiet; then
+            git commit -m 'Update public steel fundamentals'
             git push
           fi
       - name: Update and archive official Shenwan daily indices
