@@ -433,6 +433,58 @@
         }
       ],
       "currency": "USD"
+    },
+    {
+      "id": "steel_rebar",
+      "name": "螺纹钢",
+      "symbol": "RB0",
+      "unit": "元/吨",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "上期所期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/RB0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "钢材生产企业",
+          "note": "钢价上涨时关注钢材与铁矿石、焦煤等原料的价差。房地产施工和基建用钢的订单变化也会影响利润。"
+        },
+        {
+          "direction": "下跌",
+          "target": "下游钢材采购企业",
+          "note": "采购成本可能下降，实际影响取决于订单价格、库存及套保。"
+        }
+      ],
+      "related": []
+    },
+    {
+      "id": "steel_hot_rolled",
+      "name": "热轧卷板",
+      "symbol": "HC0",
+      "unit": "元/吨",
+      "source": "sina",
+      "frequency": "交易日日线",
+      "basis": "上期所期货主力连续收盘价",
+      "source_url": "https://finance.sina.com.cn/futures/quotes/HC0.shtml",
+      "stale_days": 12,
+      "min_samples_year": 200,
+      "max_gap_days": 20,
+      "hints": [
+        {
+          "direction": "上涨",
+          "target": "钢材生产企业",
+          "note": "钢价上涨时关注钢材与铁矿石、焦煤等原料的价差。机械、汽车及其他制造业用钢的订单变化也会影响利润。"
+        },
+        {
+          "direction": "下跌",
+          "target": "下游钢材采购企业",
+          "note": "采购成本可能下降，实际影响取决于订单价格、库存及套保。"
+        }
+      ],
+      "related": []
     }
   ]
 }
